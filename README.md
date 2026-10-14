@@ -2,6 +2,8 @@
 
 > An interactive, real-time cyber incident simulation where players analyze clues, exploit simulated vulnerabilities, triage malware artifacts, and unmask an insider before the NovaCorp regional power grid suffers a catastrophic blackout.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bipulkumar554/operation-blackout)
+
 ---
 
 ## ⚡ Key Highlights
