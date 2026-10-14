@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPERATION BLACKOUT - Cyber CTF</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/play.css">
+</head>
+<body class="atmosphere-low">
+
+  <!-- Status Badges & Connectivity -->
+  <div id="connection-badge" class="connection-badge">
+    <div class="connection-dot"></div>
+    <span id="connection-status-text">Connected</span>
+  </div>
+
+  <div class="game-layout">
+    <!-- Top Navigation & Status Bar -->
+    <header id="game-top-bar" class="top-bar hidden">
+      <div class="brand">
+        <div class="brand-logo">OB</div>
+        <span class="mono" style="font-weight:700;">OPERATION BLACKOUT</span>
+      </div>
+
+      <div class="player-stats">
+        <div class="stat-pill">
+          <span class="stat-label">Agent</span>
+          <span id="stat-player-name" class="stat-val text-cyan">-</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Team</span>
+          <span id="stat-team-name" class="stat-val">-</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Score</span>
+          <span id="stat-score" class="stat-val text-green">0</span>
+          <span id="stat-streak-badge" class="badge badge-yellow" style="margin-left:4px;">1.0x</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Timer</span>
+          <span id="stat-timer" class="stat-val mono text-yellow">06:00</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Atmosphere</span>
+          <select id="select-atmosphere" class="select" style="padding:2px 6px; font-size:11px; width:auto;">
+            <option value="atmosphere-low">Low</option>
+            <option value="atmosphere-med">Med</option>
+            <option value="atmosphere-high">High</option>
+          </select>
+        </div>
+        <div class="stat-pill">
+          <button type="button" id="btn-audio-toggle" class="btn btn-sm btn-icon" title="Toggle Sound">🔊</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Plot Twist & Alarm Banner -->
+    <div id="plot-twist-banner" class="twist-banner hidden"></div>
+
+    <!-- Active Strike Alert Banner -->
+    <div id="strike-warning-banner" class="strike-banner hidden" style="margin: 10px 16px 0;">
+      <div>
+        <strong>SECURITY TRIPWIRE TRIGGERED:</strong> <span id="strike-warning-text">Fair play violation.</span>
+      </div>
+      <span class="badge badge-red" id="strike-count-badge">Strike 1</span>
+    </div>
+
+    <!-- MAIN INTERACTIVE STAGE -->
+    <main class="main-stage">
+      
+      <!-- SCREEN 1: LANDING HERO -->
+      <section id="screen-landing" class="hero-screen">
+        <div class="badge badge-cyan" style="margin-bottom: 16px;">SECURE INCIDENT RESPONSE PORTAL</div>
+        <h1 class="hero-title">OPERATION BLACKOUT</h1>
+        <p class="hero-subtitle">NovaCorp Power Grid Breach Containment Operation</p>
+        
+        <div class="card hero-card" style="margin-bottom: 24px;">
+          <div class="terminal-box" id="landing-terminal">
+            <span id="landing-typewriter"></span><span class="terminal-cursor"></span>
+          </div>
+        </div>
+
+        <button type="button" id="btn-enter-grid" class="btn btn-primary btn-lg">
+          ⚡ ENTER THE GRID
+        </button>
+        <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted);">
+          Clicking initializes audio interface & connects to tactical bus.
+        </div>
+      </section>
+
+      <!-- SCREEN 2: SECRET KEY GATE (THRILLER ENTRY) -->
+      <section id="screen-entry-gate" class="hero-screen hidden">
+        <div class="badge badge-yellow" style="margin-bottom: 14px;">LAYER-0 SECURITY GATE</div>
+        <h2 style="font-size: 26px; margin-bottom: 10px;">Grid Access Key Required</h2>
+        <p style="color: var(--text-muted); max-width: 500px; margin-bottom: 20px; font-size: 13px;">
+          Adversary countermeasures have locked the main subnet. Decrypt the intercepted transmission below or request clearance from the Control Room.
+        </p>
+
+        <div class="card hero-card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <span class="mono text-cyan" style="font-size: 12px;">INTERCEPTED TRANSMISSION (CH:0x7F)</span>
+            <button type="button" class="btn btn-sm" id="btn-copy-transmission">Copy Clue</button>
+          </div>
+          <div class="code-preview" id="entry-transmission-box" style="color: #67e8f9; font-size: 12px;"></div>
+        </div>
+
+        <form id="form-entry-key" class="card hero-card" style="padding: 16px;">
+          <div class="form-group">
+            <label for="input-entry-key">Enter Grid Entry Key</label>
+            <div class="input-with-copy">
+              <input type="text" id="input-entry-key" class="input" placeholder="e.g. GRID-2026" required autocomplete="off">
+              <button type="submit" class="btn btn-primary">Decrypt & Enter</button>
+            </div>
+          </div>
+          <div id="entry-key-feedback" style="font-size: 12px; margin-top: 6px;"></div>
+        </form>
+      </section>
+
+      <!-- SCREEN 3: AGENT & TEAM JOIN -->
+      <section id="screen-join" class="hero-screen hidden">
+        <div class="card hero-card">
+          <div class="card-header">
+            <h3>AGENT CREDENTIALS</h3>
+            <span class="badge badge-cyan">INCIDENT TEAM</span>
+          </div>
+
+          <form id="form-join">
+            <div class="form-group">
+              <label for="input-agent-name">Your Codename / Agent Handle</label>
+              <input type="text" id="input-agent-name" class="input" placeholder="e.g. CipherNull" maxlength="24" required>
+            </div>
+
+            <div class="form-group">
+              <label>Deployment Mode</label>
+              <div class="flex-row" style="margin-top: 4px;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                  <input type="radio" name="deploy-mode" value="solo" checked> Solo Agent
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-left:14px;">
+                  <input type="radio" name="deploy-mode" value="team"> Team Squad (up to 3)
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" id="group-team-name" style="display:none;">
+              <label for="input-team-name">Team Name</label>
+              <input type="text" id="input-team-name" class="input" placeholder="e.g. NetSpectres" maxlength="32">
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                Teammates entering this exact name will share your terminal score and progress.
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">
+              AUTHORIZE AGENT
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: LOBBY -->
+      <section id="screen-lobby" class="hero-screen hidden">
+        <div class="card hero-card" style="text-align: center;">
+          <div class="badge badge-yellow" style="margin-bottom: 12px;">STANDBY MODE</div>
+          <h2 style="margin-bottom: 8px;">Awaiting Control Room Dispatch</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+            Your credentials have been securely verified on the incident response subnet.
+          </p>
+
+          <div style="background-color:#050912; border:1px solid var(--border-color); border-radius:6px; padding:16px; margin-bottom:20px;">
+            <div class="flex-between" style="margin-bottom: 8px;">
+              <span class="text-muted">Assigned Team:</span>
+              <strong id="lobby-team-name" class="text-cyan">-</strong>
+            </div>
+            <div class="flex-between" style="margin-bottom: 8px;">
+              <span class="text-muted">Flag Salt Signature:</span>
+              <span id="lobby-salt-badge" class="badge badge-cyan">-</span>
+            </div>
+            <div class="flex-between">
+              <span class="text-muted">Agents Ready in Subnet:</span>
+              <strong id="lobby-online-count" class="text-green">1</strong>
+            </div>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span class="connection-dot" style="animation: pulse 1.5s infinite;"></span>
+            Listening for host START broadcast...
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 5: ACTIVE LEVEL GAME VIEWPORT -->
+      <section id="screen-game" class="hidden">
+        
+        <!-- Live Trace Meter -->
+        <div class="trace-container" style="margin-bottom: 18px;">
+          <div class="trace-header">
+            <span>ADVERSARY TRACE PROGRESSION (SHADOW-X)</span>
+            <span id="trace-percentage" class="text-cyan font-bold">10%</span>
+          </div>
+          <div class="trace-bar">
+            <div id="trace-fill-bar" class="trace-fill" style="width: 10%;"></div>
+          </div>
+        </div>
+
+        <div class="game-viewport">
+          <!-- MAIN CHALLENGE CARD -->
+          <div class="challenge-column">
+            
+            <!-- Level Key Mini-Gate Card (shown if level requires unlock) -->
+            <div id="card-level-key-gate" class="card hidden" style="border-color: var(--neon-yellow); margin-bottom: 18px;">
+              <div class="card-header">
+                <span class="badge badge-yellow">DOOR ENCRYPTED</span>
+                <span class="mono" id="level-key-prompt-title">Level Key Required</span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                Enter the evidence fragment collected from your previous mission solve to decrypt the door to this level.
+              </p>
+              <form id="form-level-key" class="flex-row">
+                <input type="text" id="input-level-key" class="input" placeholder="Level key from previous fragment" required autocomplete="off">
+                <button type="submit" class="btn btn-warning">Decrypt Door</button>
+              </form>
+            </div>
+
+            <!-- Active Level Content Card -->
+            <div id="card-active-challenge" class="card">
+              <div class="card-header">
+                <div>
+                  <span id="badge-level-num" class="badge badge-cyan">LEVEL 1</span>
+                  <h2 id="challenge-title" style="margin-top: 4px; font-size: 18px;">Reconnaissance</h2>
+                </div>
+                <div class="stat-pill">
+                  <span class="stat-label">Value</span>
+                  <span id="challenge-points-val" class="stat-val text-green">100 pts</span>
+                </div>
+              </div>
+
+              <p id="challenge-description" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                Investigate NovaCorp's public-facing staging portal.
+              </p>
+
+              <!-- Dynamic Interactive Challenge Area -->
+              <div id="challenge-interactive-mount" style="margin-bottom: 20px;">
+                <!-- Populated dynamically by play.js -->
+              </div>
+
+              <!-- Flag Submission Form -->
+              <div id="flag-submission-section" style="background-color:#080e1a; border:1px solid var(--border-color); border-radius:6px; padding:16px;">
+                <form id="form-flag-submit">
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <label for="input-flag-submission">Submit Verification Flag</label>
+                    <div class="input-with-copy">
+                      <input type="text" id="input-flag-submission" class="input" placeholder="NIGHT{...}" required autocomplete="off">
+                      <button type="submit" class="btn btn-primary" id="btn-submit-flag">Verify Flag</button>
+                    </div>
+                  </div>
+                  <div class="flex-between" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                    <span>Format: <code class="text-cyan">NIGHT{...}</code> (Your team salt is automatically appended)</span>
+                    <span id="flag-feedback-status"></span>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Post-Solve Ethical Hacker Note -->
+              <div id="ethical-note-container" class="ethical-note-card hidden" style="margin-top: 20px;">
+                <div class="ethical-note-title">
+                  <span>🛡️</span>
+                  <span>ETHICAL HACKER NOTE: <span id="ethical-skill-name"></span></span>
+                </div>
+                <p id="ethical-how-defenders-fix" style="font-size: 13px; margin-bottom: 8px; color: #cbd5e1;"></p>
+                <div id="ethical-permission-notice" style="font-size: 12px; color: #94a3b8; font-style: italic;"></div>
+                <div style="margin-top: 14px; text-align: right;">
+                  <button type="button" class="btn btn-success" id="btn-proceed-next-level">Proceed to Next Mission &rarr;</button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- COLLAPSIBLE SIDE PANEL (HINTS, TOOLS, QUIZ) -->
+          <aside class="side-panel">
+            
+            <!-- Side Navigation Tabs -->
+            <div class="sub-tabs">
+              <button type="button" class="sub-tab-btn active" data-side-tab="hints">Hints (3)</button>
+              <button type="button" class="sub-tab-btn" data-side-tab="tools">Decoder Tools</button>
+              <button type="button" class="sub-tab-btn" data-side-tab="quiz">Bonus Quiz</button>
+              <button type="button" class="sub-tab-btn" data-side-tab="briefing">Briefing</button>
+            </div>
+
+            <!-- Tab 1: Hints -->
+            <div id="side-tab-hints" class="side-card">
+              <div class="flex-between" style="margin-bottom: 12px;">
+                <h4 style="font-size: 13px;">Intelligence Clues</h4>
+                <span class="badge" id="hints-status-badge">Available</span>
+              </div>
+              <div id="hints-list-container" style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Tab 2: Decoder Toolkit -->
+            <div id="side-tab-tools" class="side-card hidden">
+              <h4 style="font-size: 13px; margin-bottom: 10px;">Tactical Decoder Toolkit</h4>
+              
+              <div class="form-group">
+                <label for="toolkit-input">Input Data</label>
+                <div class="input-with-copy">
+                  <textarea id="toolkit-input" class="textarea" rows="2" placeholder="Paste Base64, Hex, or text..."></textarea>
+                  <button type="button" class="btn btn-sm" id="btn-paste-toolkit">Paste</button>
+                </div>
+              </div>
+
+              <div class="flex-row" style="flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+                <button type="button" class="btn btn-sm" id="tool-b64-dec">Base64 Decode</button>
+                <button type="button" class="btn btn-sm" id="tool-hex-dec">Hex to Text</button>
+                <button type="button" class="btn btn-sm" id="tool-rot-dec">ROT13</button>
+                <button type="button" class="btn btn-sm" id="tool-caesar-sub3">Caesar (-3)</button>
+                <button type="button" class="btn btn-sm" id="tool-url-dec">URL Decode</button>
+              </div>
+
+              <div class="form-group">
+                <label for="toolkit-output">Output Data</label>
+                <div class="input-with-copy">
+                  <textarea id="toolkit-output" class="textarea" rows="3" readonly placeholder="Decoded output..."></textarea>
+                  <button type="button" class="btn btn-sm btn-primary" id="btn-copy-toolkit">Copy</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 3: Bonus Quiz -->
+            <div id="side-tab-quiz" class="side-card hidden">
+              <div class="flex-between" style="margin-bottom: 12px;">
+                <h4 style="font-size: 13px;">Subnet Knowledge Checks</h4>
+                <span class="badge badge-green">+20 pts / -5 pts</span>
+              </div>
+              <div id="quiz-list-container">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Tab 4: Tactical Story Briefing -->
+            <div id="side-tab-briefing" class="side-card hidden">
+              <h4 style="font-size: 13px; margin-bottom: 8px;">Incident Dossier</h4>
+              <p style="font-size: 12px; line-height: 1.6; color: #94a3b8; margin-bottom: 12px;" id="briefing-story-text">
+                At 02:00 hours, NovaCorp regional power grid was breached by SHADOW-X with insider collusion.
+              </p>
+              <div style="background-color:#080d19; border:1px solid var(--border-color); padding:10px; border-radius:4px; font-size:11px;">
+                <div style="font-weight:700; color:var(--neon-cyan); margin-bottom:4px;">Collected Evidence Fragments:</div>
+                <div id="evidence-fragments-list" class="mono text-green">None yet.</div>
+              </div>
+            </div>
+
+          </aside>
+        </div>
+      </section>
+
+      <!-- SCREEN 6: VICTORY & PODIUM CELEBRATION -->
+      <section id="screen-victory" class="hero-screen hidden">
+        <div class="card hero-card vault-unmasked" style="max-width: 600px;">
+          <div class="badge badge-green" style="font-size: 13px; margin-bottom: 10px;">INCIDENT CONTAINED</div>
+          <h2 style="font-size: 28px; color: #fff;">OPERATION BLACKOUT COMPLETE</h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+            The malicious blackout sequence has been aborted. NovaCorp power grid is stabilized.
+          </p>
+
+          <div class="insider-id-badge">
+            INSIDER: <span id="victory-insider-id">EMP-4471</span>
+          </div>
+
+          <div style="margin: 20px 0; background-color:#050a14; border:1px solid var(--border-color); border-radius:8px; padding:16px;">
+            <div class="flex-between" style="margin-bottom: 8px;">
+              <span class="text-muted">Final Operational Score:</span>
+              <strong id="victory-final-score" class="text-green" style="font-size: 20px;">0</strong>
+            </div>
+            <div class="flex-between" style="margin-bottom: 8px;">
+              <span class="text-muted">Agent Rank Title:</span>
+              <span id="victory-rank-title" class="badge badge-cyan" style="font-size: 12px;">ELITE INCIDENT RESPONDER</span>
+            </div>
+            <div class="flex-between">
+              <span class="text-muted">Badges Earned:</span>
+              <span id="victory-badges" style="font-size: 13px;">🏆 First Responder, 🛡️ Ethical Defender</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary" id="btn-replay-celebration">Replay Victory Fanfare</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Multi-Tab Takeover Modal Dialog (Non-blocking In-Page) -->
+  <div id="tab-collision-modal" class="hidden" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(4,7,12,0.92); z-index:99998; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="max-width: 460px; width:100%; text-align:center;">
+      <div class="badge badge-yellow" style="margin-bottom: 12px;">DUPLICATE TAB DETECTED</div>
+      <h3 style="margin-bottom: 8px; color: var(--neon-cyan);">Active in Another Browser Tab</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+        Your agent session is currently running in a different tab or window. Would you like to transfer your active session to this tab?
+      </p>
+      <button type="button" class="btn btn-primary" id="btn-takeover-tab" style="width:100%;">
+        ⚡ Use This Tab
+      </button>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/toast-modal.js"></script>
+  <script src="/js/audio.js"></script>
+  <script src="/js/play.js"></script>
+</body>
+</html>

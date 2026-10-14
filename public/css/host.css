@@ -1,0 +1,151 @@
+/* Control Room (Host) Styles */
+.host-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #060911;
+}
+
+.host-header {
+  background-color: #090f1d;
+  border-bottom: 1px solid var(--border-color);
+  padding: 14px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.host-qr-tray {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.qr-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+}
+.qr-mini-thumb {
+  width: 48px;
+  height: 48px;
+  background-color: #000;
+  border-radius: 4px;
+}
+
+.host-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .host-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.host-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.host-main-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Control Buttons Grid */
+.control-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+/* Data Tables */
+.host-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.host-table th, .host-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+.host-table th {
+  background-color: #0a1122;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.host-table tr:hover td {
+  background-color: rgba(0, 243, 255, 0.03);
+}
+
+/* Activity Feed */
+.activity-feed {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.activity-item {
+  background-color: #080d19;
+  border-left: 3px solid var(--neon-cyan);
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.activity-item.solve { border-left-color: var(--neon-green); }
+.activity-item.strike { border-left-color: var(--neon-red); }
+.activity-item.hint { border-left-color: var(--neon-yellow); }
+
+/* Bar Chart for Solves */
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 140px;
+  padding: 10px 0 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+.chart-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.chart-bar {
+  width: 100%;
+  max-width: 44px;
+  background: linear-gradient(180deg, var(--neon-cyan) 0%, rgba(0, 243, 255, 0.2) 100%);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  transition: height 0.4s ease;
+}
+.chart-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}

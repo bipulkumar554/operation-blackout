@@ -1,0 +1,355 @@
+{
+  "story": {
+    "title": "OPERATION BLACKOUT",
+    "briefing": "ALERT: At 02:00 hours, NovaCorp Industries regional power grid was compromised by an elite adversarial entity known as 'SHADOW-X'. Digital forensics confirm the attack was facilitated by an insider with high-level access. You are deployed as the ethical-hacking digital response team. Analyze the breadcrumbs, dismantle the attack chain, unmask the insider, and abort the blackout sequence before the grid fails.",
+    "entryKey": "GRID-2026",
+    "entryTransmission": "INTERCEPTED TRANSMISSION // SOURCE: UNKNOWN // CHANNEL 0x7F //\n... [SYS_ALERT]: RECON UNIT DETECTED. ENCRYPTED ACCESS CODE DISCOVERED IN BASE64 FRAGMENT: 'R1JJRC0yMDI2' ...\nDECODE TO UNLOCK THE GRID ENTRY GATE."
+  },
+  "levels": [
+    {
+      "id": "level-1",
+      "number": 1,
+      "title": "Reconnaissance",
+      "subtitle": "Find the Hidden Information",
+      "description": "Investigate NovaCorp's public-facing staging portal. Extract intelligence hidden within developer comments, server configuration, DNS records, and asset metadata.",
+      "levelKey": "GRID-2026",
+      "baseFlag": "NIGHT{RECON_MASTER}",
+      "evidenceFragment": "EMP",
+      "points": 100,
+      "defaultTimeMinutes": 6,
+      "challengeType": "recon",
+      "hints": [
+        { "id": 1, "cost": 10, "text": "Inspect the HTML source code comments and check standard crawler control files like robots.txt." },
+        { "id": 2, "cost": 20, "text": "Look at the DNS TXT record response. Base64 strings often end with '=' or '=='." },
+        { "id": 3, "cost": 30, "text": "The flag format is NIGHT{...}. Check the image metadata EXIF author tag or combine the recon fragments." }
+      ],
+      "reconData": {
+        "url": "http://staging.novacorp.internal",
+        "htmlSource": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>NovaCorp Internal Staging</title>\n  <!-- DEBUG: Staging gateway active. All test flags follow format NIGHT{RECON_MASTER} -->\n</head>\n<body>\n  <h1>NovaCorp Grid Substation #4</h1>\n  <p>Status: All relays online.</p>\n  <img src=\"/assets/substation.jpg\" alt=\"Substation Diagram\">\n  <!-- TODO: Remove debug comments before production rollout -->\n</body>\n</html>",
+        "robotsTxt": "User-agent: *\nDisallow: /admin-secret-portal/\nDisallow: /backups/config.bak\n# Staging Notice: Developer flag marker is NIGHT{RECON_MASTER}",
+        "dnsRecords": [
+          { "type": "A", "name": "staging.novacorp.internal", "value": "10.0.4.12" },
+          { "type": "MX", "name": "staging.novacorp.internal", "value": "10 mail.novacorp.internal" },
+          { "type": "TXT", "name": "staging.novacorp.internal", "value": "v=spf1 include:_spf.novacorp.internal txt-verify=TklHSFR7UkVDT05fTUFTVEVSfQ==" }
+        ],
+        "imageMetadata": {
+          "fileName": "substation.jpg",
+          "dimensions": "1920x1080",
+          "artist": "Operator-EMP",
+          "camera": "FLIR Thermal E8-XT",
+          "software": "NovaStego v2.1",
+          "comment": "Asset Tag: NIGHT{RECON_MASTER}"
+        }
+      },
+      "ethicalHackerNote": {
+        "skill": "Open-Source Intelligence (OSINT) & Attack Surface Reconnaissance",
+        "howDefendersFix": "Defenders secure public surfaces by stripping metadata from published media, ensuring robots.txt does not leak sensitive administrative paths, sanitizing HTML debug comments during CI/CD build pipelines, and regularly auditing public DNS TXT records.",
+        "permissionNotice": "Always obtain explicit, documented authorization from asset owners before enumerating DNS or inspecting non-public web resources."
+      },
+      "quiz": [
+        {
+          "question": "What is the primary objective of robots.txt on a public web server?",
+          "options": [
+            "It acts as a firewall rule that cryptographically restricts unauthorized visitors.",
+            "It is an advisory standard instructing web crawlers which paths not to index.",
+            "It executes server-side authentication scripts for privileged accounts.",
+            "It encrypts internal directory trees from search engines."
+          ],
+          "correctIndex": 1,
+          "explanation": "robots.txt is purely advisory for search crawlers. Attackers frequently read it to discover unlinked or sensitive directories."
+        },
+        {
+          "question": "Which DNS record type commonly stores domain verification, SPF email policies, and text tokens?",
+          "options": ["A Record", "CNAME Record", "TXT Record", "PTR Record"],
+          "correctIndex": 2,
+          "explanation": "TXT records hold arbitrary text and are widely used for SPF, DKIM, and domain ownership tokens."
+        },
+        {
+          "question": "Why should images uploaded to enterprise portals have EXIF metadata scrubbed?",
+          "options": [
+            "EXIF data can leak sensitive geolocation coordinates, camera serial numbers, and creator usernames.",
+            "EXIF data automatically disables TLS encryption on images.",
+            "Removing EXIF increases image resolution.",
+            "EXIF metadata causes browsers to crash on mobile devices."
+          ],
+          "correctIndex": 0,
+          "explanation": "EXIF metadata can disclose GPS coordinates, software versions, and internal usernames of the creators."
+        }
+      ]
+    },
+    {
+      "id": "level-2",
+      "number": 2,
+      "title": "Web Security",
+      "subtitle": "Break the Web",
+      "description": "Bypass an insecure authentication portal using simulated SQL injection, then manipulate insecure client-side session cookies to escalate privileges to Administrator.",
+      "levelKey": "EMP",
+      "baseFlag": "NIGHT{SQLI_COOKIE_BYPASS}",
+      "evidenceFragment": "44",
+      "points": 150,
+      "defaultTimeMinutes": 6,
+      "challengeType": "web-security",
+      "hints": [
+        { "id": 1, "cost": 10, "text": "For the login bypass, use a classic SQL injection payload that makes the WHERE clause always true, e.g. ' OR '1'='1" },
+        { "id": 2, "cost": 20, "text": "Once inside the operator console, examine the in-game Cookie Editor panel. What role are you currently assigned?" },
+        { "id": 3, "cost": 30, "text": "Change the 'role' cookie value from 'user' to 'admin' and click 'Save & Reload Cookie' to claim the flag." }
+      ],
+      "sqlChallenge": {
+        "simulatedQuery": "SELECT * FROM operators WHERE username = '${INPUT_USER}' AND password = '${INPUT_PASS}'",
+        "acceptedPayloads": [
+          "' OR '1'='1",
+          "' OR 1=1 --",
+          "admin' --",
+          "' OR 'a'='a",
+          "' or 1=1#"
+        ]
+      },
+      "ethicalHackerNote": {
+        "skill": "SQL Injection (SQLi) & Broken Object Level Authorization / Client-Side State Tampering",
+        "howDefendersFix": "Defenders eliminate SQLi by using Parameterized Queries (Prepared Statements) or ORMs that treat user input strictly as data rather than executable code. Client-side state tampering is prevented by storing privileges server-side in signed sessions or cryptographically validated JWTs with HttpOnly and Secure cookie flags.",
+        "permissionNotice": "Attempting SQL injection against any production server without explicit written consent is illegal under computer misuse legislation."
+      },
+      "quiz": [
+        {
+          "question": "Which programming technique completely eliminates SQL Injection vulnerabilities?",
+          "options": [
+            "Writing longer and more complex SQL queries.",
+            "Using Parameterized Queries (Prepared Statements) with bound parameters.",
+            "Converting all database strings into Base64 format.",
+            "Switching database ports from 3306 to 8080."
+          ],
+          "correctIndex": 1,
+          "explanation": "Prepared statements ensure the database engine never interprets user-supplied strings as executable SQL command syntax."
+        },
+        {
+          "question": "What does the 'HttpOnly' flag on a cookie accomplish?",
+          "options": [
+            "It restricts the cookie from being sent over HTTPS connections.",
+            "It prevents client-side JavaScript (e.g. document.cookie) from accessing the cookie, mitigating XSS session theft.",
+            "It forces the browser to compress the cookie payload.",
+            "It allows the cookie to be shared across any third-party domain."
+          ],
+          "correctIndex": 1,
+          "explanation": "HttpOnly blocks client-side scripts from reading session cookies, protecting session tokens from Cross-Site Scripting (XSS)."
+        },
+        {
+          "question": "Why is relying on client-side cookies like 'role=admin' fundamentally flawed?",
+          "options": [
+            "Cookies can only hold numbers, not text.",
+            "The client controls their browser and can modify, forge, or tamper with any cookie value.",
+            "Browsers automatically delete cookies after every HTTP request.",
+            "Cookies only work on desktop browsers."
+          ],
+          "correctIndex": 1,
+          "explanation": "Any data sent from or stored on the client is untrusted. Authorization roles must be verified securely on the server."
+        }
+      ]
+    },
+    {
+      "id": "level-3",
+      "number": 3,
+      "title": "Cryptography",
+      "subtitle": "Decode the Secret",
+      "description": "Intercept an encrypted transmission left behind on the command bus. Reverse a multi-stage cipher (Hex -> Base64 -> Caesar) and decode an audio Morse code transmission to construct the full verification flag.",
+      "levelKey": "44",
+      "baseFlag": "NIGHT{CYBER_DEFENSE_GRID_SHADOW}",
+      "evidenceFragment": "71",
+      "points": 200,
+      "defaultTimeMinutes": 6,
+      "challengeType": "cryptography",
+      "hints": [
+        { "id": 1, "cost": 10, "text": "The layered ciphertext is Hex-encoded. Convert Hex to ASCII text first using the Decoder Toolkit." },
+        { "id": 2, "cost": 20, "text": "The resulting string is Base64. Decode Base64 to reveal text that has been shifted by Caesar ROT+3 (Shift = 3)." },
+        { "id": 3, "cost": 30, "text": "The audio player emits Morse code for letters S-H-A-D-O-W (... .... .- -.. --- .--). Append _SHADOW to CYBER_DEFENSE_GRID!" }
+      ],
+      "cryptoChallenge": {
+        "ciphertextHex": "526b4a46534656665230684a534646575346394b56557848",
+        "caesarShift": 3,
+        "morseTarget": "SHADOW",
+        "morseCode": "... .... .- -.. --- .--",
+        "decodedLayer1": "CYBER_DEFENSE_GRID"
+      },
+      "ethicalHackerNote": {
+        "skill": "Multi-Stage Cryptanalysis, Encoding Differentiation & Audio Signal Decoding",
+        "howDefendersFix": "Defenders never rely on 'security through obscurity' or weak classical ciphers like Caesar / ROT. Production systems must utilize industry-standard, mathematically validated cryptography such as AES-256-GCM, TLS 1.3, and Edwards-curve signatures (Ed25519) with robust key management.",
+        "permissionNotice": "Ethical hackers analyze and stress-test encryption standards under strict rules of engagement, adhering to responsible vulnerability disclosure."
+      },
+      "quiz": [
+        {
+          "question": "What is the crucial difference between encoding (such as Base64 or Hex) and encryption (such as AES)?",
+          "options": [
+            "Encoding protects data confidentiality, while encryption only compresses data.",
+            "Encoding transforms data representation without requiring a secret key; encryption protects secrecy using a secret cryptographic key.",
+            "Encoding can only be performed on numbers, while encryption works on text.",
+            "There is no difference; they are identical concepts."
+          ],
+          "correctIndex": 1,
+          "explanation": "Encoding is for data interchange and is easily reversed by anyone without a key. Encryption requires a secret key to decipher."
+        },
+        {
+          "question": "Why is the classic Caesar cipher considered completely insecure for modern data protection?",
+          "options": [
+            "It requires quantum supercomputers to decrypt.",
+            "It has a keyspace of only 25 possible shifts, making brute-force cracking trivial within milliseconds.",
+            "It only works on ancient Latin text.",
+            "It cannot encrypt lowercase characters."
+          ],
+          "correctIndex": 1,
+          "explanation": "With only 25 possible alphabetic shifts, an attacker can test all keys instantaneously or use letter frequency analysis."
+        },
+        {
+          "question": "In modern symmetric encryption, what is the role of an Initialization Vector (IV) or Nonce?",
+          "options": [
+            "It replaces the secret encryption key.",
+            "It ensures that encrypting identical plaintexts with the same key produces completely distinct ciphertexts.",
+            "It acts as a digital copyright mark.",
+            "It speeds up network transmission bandwidth."
+          ],
+          "correctIndex": 1,
+          "explanation": "A unique IV/nonce prevents attackers from recognizing patterns when identical plaintexts are encrypted multiple times."
+        }
+      ]
+    },
+    {
+      "id": "level-4",
+      "number": 4,
+      "title": "Malware Hunter",
+      "subtitle": "Hunt the Malicious Artifact",
+      "description": "Inspect live system telemetry from the compromised substation controller. Identify the masquerading executable, isolate the Command & Control (C2) domain, and uncover the persistence registry key.",
+      "levelKey": "71",
+      "baseFlag": "NIGHT{MALWARE_ARTIFACT_HUNTED}",
+      "evidenceFragment": "SHADOW-X",
+      "points": 250,
+      "defaultTimeMinutes": 6,
+      "challengeType": "malware-hunter",
+      "hints": [
+        { "id": 1, "cost": 10, "text": "Check the Process List carefully. Look for a process with typosquatting/masquerading (e.g. 0 instead of o)." },
+        { "id": 2, "cost": 20, "text": "Inspect the Network & Auth Log tab. Find the external domain name receiving beaconing traffic on port 8443." },
+        { "id": 3, "cost": 30, "text": "Check the Persistence Script tab. Locate the Registry Run value name being added." }
+      ],
+      "malwareArtifacts": {
+        "processList": [
+          { "pid": 4, "name": "System", "path": "kernel", "user": "SYSTEM", "network": "none" },
+          { "pid": 412, "name": "smss.exe", "path": "C:\\Windows\\System32\\smss.exe", "user": "SYSTEM", "network": "none" },
+          { "pid": 728, "name": "csrss.exe", "path": "C:\\Windows\\System32\\csrss.exe", "user": "SYSTEM", "network": "none" },
+          { "pid": 842, "name": "svchost.exe", "path": "C:\\Windows\\System32\\svchost.exe", "user": "NETWORK SERVICE", "network": "10.0.4.1:443" },
+          { "pid": 1150, "name": "explorer.exe", "path": "C:\\Windows\\explorer.exe", "user": "NovaCorp\\Operator", "network": "none" },
+          { "pid": 3319, "name": "svch0st.exe", "path": "C:\\Users\\Public\\svch0st.exe", "user": "NovaCorp\\Operator", "network": "c2-darknode.internal:8443 (ESTABLISHED)" },
+          { "pid": 4200, "name": "chrome.exe", "path": "C:\\Program Files\\Google\\Chrome\\chrome.exe", "user": "NovaCorp\\Operator", "network": "142.250.190.46:443" }
+        ],
+        "networkLog": [
+          "2026-10-14 02:14:11 AUTH SUCCESS user=svc_admin ip=10.0.0.45",
+          "2026-10-14 02:14:55 DNS QUERY domain=novacorp.internal response=10.0.0.1",
+          "2026-10-14 02:15:30 DNS QUERY domain=c2-darknode.internal response=185.220.101.5 [ANOMALOUS]",
+          "2026-10-14 02:15:32 OUTBOUND HTTPS dest=c2-darknode.internal:8443 bytes_sent=14320 pid=3319",
+          "2026-10-14 02:16:01 ALERT beaconing detected to c2-darknode.internal [INTERVAL=30s]"
+        ],
+        "persistenceScript": "# NovaCorp Emergency Update Dispatcher (Tampered)\n$TargetReg = 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'\n$MalwarePath = 'C:\\Users\\Public\\svch0st.exe'\nSet-ItemProperty -Path $TargetReg -Name 'WinUpdateHelper' -Value \"$MalwarePath -c2 c2-darknode.internal\"\nWrite-Output 'Persistence established under WinUpdateHelper.'"
+      },
+      "targetArtifacts": {
+        "process": "svch0st.exe",
+        "c2": "c2-darknode.internal",
+        "persistence": "WinUpdateHelper"
+      },
+      "ethicalHackerNote": {
+        "skill": "Endpoint Forensics, Process Masquerading Detection & Persistence Triage",
+        "howDefendersFix": "Defenders counter malware execution by enforcing Application Whitelisting (AppLocker/WDAC), restricting script execution in user-writable paths like C:\\Users\\Public, deploying Endpoint Detection and Response (EDR) sensors to alert on suspicious Run registry edits, and implementing DNS sinkholes for malicious C2 domains.",
+        "permissionNotice": "Malware analysis must always be executed in quarantined, isolated sandboxes without external internet routing."
+      },
+      "quiz": [
+        {
+          "question": "What is the security term for naming a malicious binary 'svch0st.exe' to mimic the legitimate 'svchost.exe'?",
+          "options": [
+            "Process Masquerading / Typosquatting",
+            "Buffer Overflow",
+            "Cross-Site Scripting",
+            "Man-in-the-Middle"
+          ],
+          "correctIndex": 0,
+          "explanation": "Masquerading (MITRE ATT&CK T1036) manipulates file names or paths to evade human review and rudimentary process monitoring."
+        },
+        {
+          "question": "Which Windows registry hive is commonly abused to automatically execute malware upon user login?",
+          "options": [
+            "HKLM\\SYSTEM\\CurrentControlSet\\HardwareProfiles",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "HKCU\\Control Panel\\Desktop\\Colors",
+            "HKLM\\SECURITY\\Cache"
+          ],
+          "correctIndex": 1,
+          "explanation": "The CurrentVersion\\Run registry key specifies applications that start automatically whenever a user logs into Windows."
+        },
+        {
+          "question": "In cybersecurity incident response, what is a 'C2' or 'C&C' server?",
+          "options": [
+            "A server that compiles C++ code for developers.",
+            "A Command and Control infrastructure controlled by attackers to remotely manage compromised implants and exfiltrate data.",
+            "A backup database server used for disaster recovery.",
+            "A cryptographic certification authority."
+          ],
+          "correctIndex": 1,
+          "explanation": "Command and Control (C2) servers allow adversaries to issue instructions, deploy secondary payloads, and pull stolen data from victims."
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "number": 5,
+      "title": "The Final Vault",
+      "subtitle": "Unmask the Insider & Restore the Grid",
+      "description": "Synthesize the four evidence fragments gathered across the incident investigation. Input the insider's employee credential ID and the adversary's alias to trigger the Master Override Sequence.",
+      "levelKey": "SHADOW-X",
+      "points": 500,
+      "defaultTimeMinutes": 8,
+      "challengeType": "vault",
+      "targetInsiderId": "EMP-4471",
+      "targetHackerAlias": "SHADOW-X",
+      "baseFlag": "NIGHT{GRID_RESCUED_INSIDER_UNMASKED}",
+      "hints": [
+        { "id": 1, "cost": 10, "text": "Combine the evidence fragments from Level 1, Level 2, and Level 3: EMP + 44 + 71 -> EMP-4471." },
+        { "id": 2, "cost": 20, "text": "The adversary alias was gathered in Level 4: SHADOW-X." },
+        { "id": 3, "cost": 30, "text": "Submit Insider ID 'EMP-4471' and Hacker Alias 'SHADOW-X' to unmask the rogue architect." }
+      ],
+      "ethicalHackerNote": {
+        "skill": "Root Cause Analysis, Threat Attribution & Forensic Synthesis",
+        "howDefendersFix": "Defenders prevent insider threats through the Principle of Least Privilege, Separation of Duties, robust PAM (Privileged Access Management), automated behavioral analytics (UEBA), and multi-party authorization for critical infrastructure commands.",
+        "permissionNotice": "Attribution and incident response play vital roles in defending critical infrastructure within legal and ethical boundaries."
+      },
+      "quiz": [
+        {
+          "question": "Which principle limits employee access strictly to the resources necessary for their specific job role?",
+          "options": [
+            "Principle of Least Privilege (PoLP)",
+            "Security Through Obscurity",
+            "Open Door Policy",
+            "Default Allow Architecture"
+          ],
+          "correctIndex": 0,
+          "explanation": "Least Privilege ensures that even if an account is compromised or turns rogue, the blast radius is strictly confined."
+        },
+        {
+          "question": "What is UEBA in modern enterprise defense?",
+          "options": [
+            "Universal Ethernet Bus Adapter",
+            "User and Entity Behavior Analytics, which uses machine learning to detect anomalous activities indicative of insider threats.",
+            "Unified Encryption Backup Architecture",
+            "Unrestricted External Browser Access"
+          ],
+          "correctIndex": 1,
+          "explanation": "UEBA monitors baseline user behaviors and triggers alarms when anomalous data transfers or access spikes occur."
+        },
+        {
+          "question": "Why is multi-party authorization (dual-custody) essential for critical infrastructure operations?",
+          "options": [
+            "It ensures no single rogue individual can unilaterally trigger catastrophic actions like shutting down a power grid.",
+            "It slows down computer boot time.",
+            "It doubles electricity consumption.",
+            "It prevents computers from using passwords."
+          ],
+          "correctIndex": 0,
+          "explanation": "Dual-custody requires independent verification from two authorized parties, preventing single-point insider compromises."
+        }
+      ]
+    }
+  ]
+}

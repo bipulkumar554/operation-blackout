@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROJECTOR SCREEN // OPERATION BLACKOUT</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/screen.css">
+</head>
+<body class="atmosphere-med">
+
+  <div class="screen-layout">
+    
+    <!-- HEADER -->
+    <header class="screen-header">
+      <div>
+        <div class="screen-title">OPERATION BLACKOUT</div>
+        <div class="mono" style="color:var(--neon-cyan); font-size:14px; letter-spacing:1px;">
+          NOVACORP INCIDENT RESPONSE // LIVE PROJECTOR FEED
+        </div>
+      </div>
+
+      <div class="flex-row" style="gap:20px;">
+        <div class="stat-pill" style="padding:8px 18px; font-size:16px;">
+          <span class="stat-label">Active Mission</span>
+          <span id="screen-level-badge" class="stat-val text-cyan">LEVEL 1</span>
+        </div>
+        <div class="stat-pill" style="padding:8px 18px; font-size:16px;">
+          <span class="stat-label">Mission Timer</span>
+          <span id="screen-timer" class="stat-val text-yellow mono" style="font-size:22px;">06:00</span>
+        </div>
+        <div class="stat-pill" style="padding:8px 18px; font-size:16px;">
+          <span class="stat-label">Agents Deployed</span>
+          <span id="screen-agent-count" class="stat-val text-green">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- REVEALED ENTRY KEY BANNER -->
+    <div id="screen-entry-key-banner" class="screen-entry-key-banner hidden">
+      <div style="font-size:16px; font-weight:700;">
+        ⚡ GRID ENTRY KEY REVEALED BY CONTROL ROOM:
+      </div>
+      <div id="screen-entry-key-text" class="mono" style="font-size:28px; font-weight:900; letter-spacing:4px; color:#fef08a;">
+        GRID-2026
+      </div>
+    </div>
+
+    <!-- FIRST BLOOD NOTIFICATION TICKER -->
+    <div id="screen-first-blood-ticker" class="first-blood-ticker hidden" style="margin-bottom:20px;">
+      <span style="font-size:18px;">🔥</span>
+      <span id="screen-first-blood-text">FIRST BLOOD: Team solved Level 1!</span>
+    </div>
+
+    <!-- MAIN TWO-COLUMN VIEW -->
+    <div id="screen-main-grid" class="screen-grid">
+      
+      <!-- LEFT: BIG QR JOIN CARD -->
+      <aside class="screen-join-card">
+        <div class="badge badge-cyan" style="font-size:13px; margin-bottom:8px;">TACTICAL JOIN PORTAL</div>
+        <h2 style="font-size:24px; color:#fff;">SCAN TO DEPLOY</h2>
+        <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">
+          Open mobile camera or visit URL below to join the response team.
+        </p>
+
+        <img id="big-screen-qr" class="big-qr-img" alt="Scan to join CTF">
+
+        <div style="background:#050912; border:1px solid var(--border-color); border-radius:6px; padding:10px 14px; width:100%; word-break:break-all;">
+          <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Direct Web Link:</div>
+          <strong id="screen-direct-url" class="mono text-cyan" style="font-size:14px;">http://localhost:3000/play</strong>
+        </div>
+
+        <div style="margin-top:auto; font-size:12px; color:var(--text-muted); padding-top:16px;">
+          Team size: 1 to 3 agents per terminal squad.
+        </div>
+      </aside>
+
+      <!-- RIGHT: LIVE TOP-10 LEADERBOARD -->
+      <main class="screen-leaderboard-card">
+        <div class="flex-between">
+          <h2 style="font-size:22px; color:#fff;">TACTICAL LEADERBOARD (TOP 10)</h2>
+          <span class="badge badge-green">LIVE UPDATES</span>
+        </div>
+
+        <table class="screen-lb-table">
+          <thead>
+            <tr>
+              <th style="width:70px;">Rank</th>
+              <th>Squad Name</th>
+              <th>Missions Solved</th>
+              <th>Current Stage</th>
+              <th style="text-align:right;">Score</th>
+            </tr>
+          </thead>
+          <tbody id="screen-lb-tbody">
+            <tr>
+              <td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">
+                Grid standing by. Waiting for agents to deploy...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </main>
+
+    </div>
+
+    <!-- FINAL PODIUM VIEW (SHOWN WHEN OPERATION ENDED) -->
+    <div id="screen-podium-view" class="hidden" style="text-align:center; padding:20px 0;">
+      <div class="badge badge-green" style="font-size:16px; margin-bottom:12px;">OPERATION CONCLUDED</div>
+      <h1 style="font-size:38px; color:#fff;">FINAL MISSION PODIUM</h1>
+      <p style="color:var(--text-muted); font-size:16px;">Top Incident Response Teams - NovaCorp Grid Restored</p>
+
+      <div class="podium-container" id="podium-stage">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/audio.js"></script>
+  <script src="/js/screen.js"></script>
+</body>
+</html>

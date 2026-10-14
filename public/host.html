@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CONTROL ROOM // OPERATION BLACKOUT</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link rel="stylesheet" href="/css/host.css">
+</head>
+<body class="atmosphere-med">
+
+  <!-- PIN AUTH MODAL / SCREEN -->
+  <div id="host-auth-screen" style="position:fixed; top:0; left:0; right:0; bottom:0; background:#060a13; z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="max-width:400px; width:100%; text-align:center;">
+      <div class="badge badge-yellow" style="margin-bottom:12px;">CONTROL ROOM AUTHENTICATION</div>
+      <h2 style="margin-bottom:8px; font-size:20px;">OPERATION BLACKOUT</h2>
+      <p style="color:var(--text-muted); font-size:12px; margin-bottom:20px;">
+        Enter Master Host PIN to unlock game management console.
+      </p>
+
+      <form id="form-host-login">
+        <div class="form-group">
+          <input type="password" id="input-host-pin" class="input" placeholder="Enter Host PIN (e.g. 1337)" required autofocus style="text-align:center; font-size:18px; letter-spacing:4px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">ACCESS CONTROL ROOM</button>
+        <div id="host-login-feedback" style="margin-top:10px; font-size:12px;"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="host-layout">
+    <!-- TOP HEADER BAR -->
+    <header class="host-header">
+      <div class="brand">
+        <div class="brand-logo" style="background:#ffcc00; color:#060911;">CR</div>
+        <div>
+          <span class="mono" style="font-weight:700; font-size:16px;">CONTROL ROOM // OPERATION BLACKOUT</span>
+          <div style="font-size:11px; color:var(--text-muted);">Tactical Orchestration & Anti-Cheat Engine</div>
+        </div>
+      </div>
+
+      <!-- Quick QR & Link Tray -->
+      <div class="host-qr-tray">
+        <!-- Player Link -->
+        <div class="qr-mini-card">
+          <img id="qr-thumb-play" class="qr-mini-thumb" alt="QR Player">
+          <div>
+            <div style="font-size:11px; font-weight:700;">PLAYER LINK</div>
+            <button type="button" class="btn btn-sm" id="btn-copy-play-url">Copy /play</button>
+          </div>
+        </div>
+
+        <!-- Big Screen Link -->
+        <div class="qr-mini-card">
+          <img id="qr-thumb-screen" class="qr-mini-thumb" alt="QR Screen">
+          <div>
+            <div style="font-size:11px; font-weight:700;">BIG SCREEN</div>
+            <button type="button" class="btn btn-sm" id="btn-copy-screen-url">Copy /screen</button>
+          </div>
+        </div>
+
+        <!-- Reveal Key Button -->
+        <div class="qr-mini-card">
+          <div>
+            <div style="font-size:11px; font-weight:700;">GRID ENTRY KEY</div>
+            <div class="flex-row" style="gap:6px; margin-top:2px;">
+              <span id="host-entry-key-badge" class="badge badge-yellow">GRID-2026</span>
+              <button type="button" class="btn btn-sm btn-warning" id="btn-toggle-reveal-key">Reveal Key</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Agents Pill -->
+        <div class="stat-pill">
+          <span class="stat-label">Online Agents</span>
+          <span id="host-online-agents-count" class="stat-val text-green">0</span>
+        </div>
+
+        <!-- Backup & CSV Export -->
+        <div class="flex-row">
+          <button type="button" class="btn btn-sm" id="btn-export-csv" title="Export Results CSV">📥 Export CSV</button>
+          <button type="button" class="btn btn-sm" id="btn-backup-state" title="Download State Backup">💾 Backup</button>
+          <label class="btn btn-sm" style="cursor:pointer;" title="Restore State JSON">
+            📂 Restore
+            <input type="file" id="input-restore-file" accept=".json" style="display:none;">
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- HOST DASHBOARD GRID -->
+    <div class="host-grid">
+      
+      <!-- LEFT SIDEBAR: MASTER CONTROLS -->
+      <aside class="host-sidebar">
+        
+        <!-- Game Status & Master Clock -->
+        <div class="card">
+          <div class="card-header">
+            <h4>MASTER GAME CONTROLS</h4>
+            <span class="badge badge-cyan" id="host-game-status-badge">LOBBY</span>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <div class="flex-between" style="font-family:var(--font-mono); margin-bottom:4px;">
+              <span class="text-muted">Global Level Timer:</span>
+              <strong id="host-timer-display" class="text-yellow" style="font-size:18px;">06:00</strong>
+            </div>
+            <div class="flex-row" style="gap:6px;">
+              <button type="button" class="btn btn-sm" id="btn-timer-sub1">-1 Min</button>
+              <button type="button" class="btn btn-sm" id="btn-timer-add1">+1 Min</button>
+            </div>
+          </div>
+
+          <div class="control-btn-grid" style="margin-bottom:12px;">
+            <button type="button" class="btn btn-success" id="btn-host-start">▶ Start Game</button>
+            <button type="button" class="btn btn-warning" id="btn-host-pause">⏸ Pause</button>
+            <button type="button" class="btn btn-danger" id="btn-host-end">⏹ End Game</button>
+            <button type="button" class="btn" id="btn-host-reset">🔄 Reset All</button>
+          </div>
+        </div>
+
+        <!-- Level Releases -->
+        <div class="card">
+          <div class="card-header">
+            <h4>LEVEL RELEASES</h4>
+            <span class="badge" id="host-active-level-label">L1 Active</span>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+            Release levels globally to everyone, or unlock for an individual team:
+          </p>
+
+          <div class="control-btn-grid" style="margin-bottom:12px;">
+            <button type="button" class="btn btn-sm" id="btn-rel-l1">Release L1 (Recon)</button>
+            <button type="button" class="btn btn-sm" id="btn-rel-l2">Release L2 (Web)</button>
+            <button type="button" class="btn btn-sm" id="btn-rel-l3">Release L3 (Crypto)</button>
+            <button type="button" class="btn btn-sm" id="btn-rel-l4">Release L4 (Malware)</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btn-rel-l5">Release Final Vault</button>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="select-team-release">Release Level for One Team</label>
+            <div class="flex-row">
+              <select id="select-team-release" class="select" style="font-size:12px;"></select>
+              <select id="select-level-num-release" class="select" style="width:90px; font-size:12px;">
+                <option value="1">L1</option>
+                <option value="2">L2</option>
+                <option value="3">L3</option>
+                <option value="4">L4</option>
+                <option value="5">Vault</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-submit-team-release">Release</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plot Twist Buttons -->
+        <div class="card">
+          <div class="card-header">
+            <h4>TACTICAL PLOT TWISTS</h4>
+            <span class="badge badge-yellow">LIVE EFFECTS</span>
+          </div>
+          <div class="control-btn-grid">
+            <button type="button" class="btn btn-sm" id="btn-twist-blackout">💡 Blackout (10s)</button>
+            <button type="button" class="btn btn-sm" id="btn-twist-surge">⚡ Trace Surge (30s)</button>
+            <button type="button" class="btn btn-sm btn-success" id="btn-twist-bonus">⭐ Bonus 2x (60s)</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btn-twist-alarm">🚨 Fake Alarm (10s)</button>
+          </div>
+        </div>
+
+        <!-- Host Broadcast -->
+        <div class="card">
+          <div class="card-header">
+            <h4>BROADCAST TO AGENTS</h4>
+          </div>
+          <form id="form-host-broadcast">
+            <div class="form-group">
+              <input type="text" id="input-broadcast-text" class="input" placeholder="Message to all agent terminals..." required>
+            </div>
+            <div class="flex-between">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+                <input type="checkbox" id="check-broadcast-siren"> Sound Siren
+              </label>
+              <button type="submit" class="btn btn-primary btn-sm">Dispatch Broadcast</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Quick Points Management -->
+        <div class="card">
+          <div class="card-header">
+            <h4>POINTS ADJUSTMENT</h4>
+          </div>
+          <form id="form-award-points">
+            <div class="form-group">
+              <label>Target Team</label>
+              <select id="select-points-team" class="select" style="font-size:12px;">
+                <option value="ALL">ALL TEAMS (Bulk Bonus)</option>
+              </select>
+            </div>
+            <div class="flex-row" style="margin-bottom:10px;">
+              <input type="number" id="input-points-delta" class="input" placeholder="Points (e.g. 50 or -20)" required>
+              <input type="text" id="input-points-reason" class="input" placeholder="Reason" value="Host Bonus">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">Apply Points</button>
+          </form>
+        </div>
+
+      </aside>
+
+      <!-- RIGHT MAIN VIEW: DASHBOARD, LEADERBOARD, TABLES -->
+      <main class="host-main-view">
+        
+        <!-- Top Solve Analytics Bar Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h4>SOLVE DISTRIBUTION BY LEVEL</h4>
+            <span class="mono text-muted" style="font-size:11px;">Auto-calculated from live state</span>
+          </div>
+          <div class="chart-container" id="host-solve-chart">
+            <div class="chart-bar-col">
+              <div class="chart-bar" id="bar-l1" style="height: 10%;"></div>
+              <span class="chart-label">L1 (Recon)</span>
+              <strong id="bar-val-l1" style="font-size:11px;">0</strong>
+            </div>
+            <div class="chart-bar-col">
+              <div class="chart-bar" id="bar-l2" style="height: 10%;"></div>
+              <span class="chart-label">L2 (Web)</span>
+              <strong id="bar-val-l2" style="font-size:11px;">0</strong>
+            </div>
+            <div class="chart-bar-col">
+              <div class="chart-bar" id="bar-l3" style="height: 10%;"></div>
+              <span class="chart-label">L3 (Crypto)</span>
+              <strong id="bar-val-l3" style="font-size:11px;">0</strong>
+            </div>
+            <div class="chart-bar-col">
+              <div class="chart-bar" id="bar-l4" style="height: 10%;"></div>
+              <span class="chart-label">L4 (Malware)</span>
+              <strong id="bar-val-l4" style="font-size:11px;">0</strong>
+            </div>
+            <div class="chart-bar-col">
+              <div class="chart-bar" id="bar-l5" style="height: 10%;"></div>
+              <span class="chart-label">Vault</span>
+              <strong id="bar-val-l5" style="font-size:11px;">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHEAT ALERTS PANEL -->
+        <div class="card" style="border-color:var(--neon-red);">
+          <div class="card-header">
+            <h4 style="color:var(--neon-red);">🚨 LIVE CHEAT ALERTS & STRIKES</h4>
+            <span class="badge badge-red" id="badge-cheat-count">0 Alerts</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="host-table" id="table-cheat-alerts">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Team</th>
+                  <th>Agent</th>
+                  <th>Reason</th>
+                  <th>Penalty</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-cheat-alerts">
+                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No cheat alerts recorded. Subnet integrity normal.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LIVE TEAMS & LEADERBOARD -->
+        <div class="card">
+          <div class="card-header">
+            <h4>LIVE TEAMS & LEADERBOARD</h4>
+            <span class="badge badge-green" id="badge-team-count">0 Teams</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="host-table" id="table-teams-leaderboard">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Team Name</th>
+                  <th>Score</th>
+                  <th>Level</th>
+                  <th>Solved</th>
+                  <th>Trace</th>
+                  <th>Strikes</th>
+                  <th>Status</th>
+                  <th>Team Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-teams">
+                <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">Waiting for teams to join the grid...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CONNECTED AGENTS TABLE -->
+        <div class="card">
+          <div class="card-header">
+            <h4>CONNECTED AGENT SESSIONS</h4>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="host-table" id="table-players">
+              <thead>
+                <tr>
+                  <th>Agent Handle</th>
+                  <th>Team</th>
+                  <th>Online</th>
+                  <th>Agent ID</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-players">
+                <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No agents connected.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LIVE ACTIVITY FEED -->
+        <div class="card">
+          <div class="card-header">
+            <h4>LIVE ACTIVITY TELEMETRY</h4>
+          </div>
+          <div class="activity-feed" id="host-activity-feed">
+            <div class="activity-item">
+              <span>System initialized. Listening for tactical events...</span>
+              <span class="text-muted">Now</span>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/toast-modal.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+/* Player Interface Styles */
+.game-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header Top Bar */
+.top-bar {
+  background-color: #070e1b;
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--neon-cyan);
+}
+.brand-logo {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, var(--neon-cyan), #0066ff);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #070b12;
+  font-size: 13px;
+}
+.player-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.stat-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.stat-val {
+  font-weight: 700;
+}
+
+/* Main Content Area */
+.main-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 1320px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+/* Grid Screen Layout with Collapsible Side Panel */
+.game-viewport {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .game-viewport {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Landing / Hero Screen */
+.hero-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  padding: 20px;
+}
+.hero-title {
+  font-size: clamp(2rem, 6vw, 3.8rem);
+  letter-spacing: 3px;
+  color: #ffffff;
+  text-shadow: 0 0 20px var(--neon-cyan-glow);
+  margin-bottom: 12px;
+}
+.hero-subtitle {
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+.hero-card {
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+  text-align: left;
+}
+
+/* Terminal Typing Effect */
+.terminal-box {
+  background-color: #060a12;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--neon-cyan);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94a3b8;
+  position: relative;
+  min-height: 90px;
+}
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background-color: var(--neon-cyan);
+  margin-left: 4px;
+  vertical-align: -2px;
+  animation: blink 0.8s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Tabbed Simulated Views (Recon / Malware / Tools) */
+.sub-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.sub-tab-btn {
+  padding: 6px 14px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+.sub-tab-btn:hover {
+  color: var(--neon-cyan);
+}
+.sub-tab-btn.active {
+  background-color: rgba(0, 243, 255, 0.1);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+/* Simulated Code & Logs Window */
+.mock-browser {
+  background-color: #050810;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.mock-browser-bar {
+  background-color: #0a101f;
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mock-url {
+  background-color: #060912;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1;
+}
+.code-preview {
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #38bdf8;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* Cookie Editor Table */
+.cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-top: 10px;
+}
+.cookie-table th, .cookie-table td {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+.cookie-table th {
+  background-color: #0b1220;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Side Panel Tabs */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.side-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+/* Quiz Item Styles */
+.quiz-card {
+  background-color: #0a1120;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.quiz-option-btn {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  margin-top: 6px;
+  background-color: #0e172a;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+.quiz-option-btn:hover:not(:disabled) {
+  border-color: var(--neon-cyan);
+  background-color: #13203b;
+}
+.quiz-option-btn.correct {
+  border-color: var(--neon-green);
+  background-color: rgba(0, 255, 136, 0.12);
+  color: var(--neon-green);
+}
+.quiz-option-btn.wrong {
+  border-color: var(--neon-red);
+  background-color: rgba(255, 51, 102, 0.12);
+  color: var(--neon-red);
+}
+
+/* Ethical Hacker Note Banner */
+.ethical-note-card {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.08) 0%, rgba(0, 243, 255, 0.04) 100%);
+  border: 1px solid var(--neon-green);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.ethical-note-title {
+  color: var(--neon-green);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Anti-Cheat Strike Banner */
+.strike-banner {
+  background-color: rgba(255, 51, 102, 0.12);
+  border: 1px solid var(--neon-red);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #ff99aa;
+  font-size: 13px;
+}
+
+/* Plot Twist Banner */
+.twist-banner {
+  background: linear-gradient(90deg, rgba(255, 204, 0, 0.15), rgba(255, 51, 102, 0.15));
+  border: 1px solid var(--neon-yellow);
+  padding: 8px 16px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--neon-yellow);
+  letter-spacing: 1px;
+}
+
+/* Vault Animation & Celebration */
+.vault-unmasked {
+  text-align: center;
+  padding: 30px 20px;
+}
+.insider-id-badge {
+  display: inline-block;
+  padding: 10px 24px;
+  background-color: rgba(0, 255, 136, 0.1);
+  border: 2px solid var(--neon-green);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--neon-green);
+  letter-spacing: 2px;
+  margin: 16px 0;
+  box-shadow: 0 0 20px var(--neon-green-glow);
+}
+
+/* Confetti Canvas */
+#confetti-canvas {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "operation-blackout",
+  "version": "1.0.0",
+  "description": "Multiplayer Cybersecurity CTF Game - OPERATION BLACKOUT",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node tests/run-all-tests.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
