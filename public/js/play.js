@@ -880,17 +880,10 @@
       const rawFlag = inputFlagSubmission.value.trim();
       if (!rawFlag) return;
 
-      // Ensure team salt is appended if user typed base flag
-      let flagToSend = rawFlag;
-      const teamSalt = currentTeamData.salt || 'a7f3';
-      if (!rawFlag.endsWith(`_${teamSalt}`)) {
-        flagToSend = `${rawFlag}_${teamSalt}`;
-      }
-
       socket.emit('submitFlag', {
         playerId: currentPlayerData.id,
         levelNumber: activeLevelNumber,
-        flag: flagToSend
+        flag: rawFlag
       }, (res) => {
         if (res && res.success) {
           window.soundSystem.playCorrect();

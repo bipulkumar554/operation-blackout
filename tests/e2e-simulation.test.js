@@ -54,10 +54,11 @@ async function runE2ESimulation() {
   console.log(' Starting End-to-End Simulation Test Suite');
   console.log('========================================================');
 
-  // Ensure clean state before testing
-  const statePath = path.join(__dirname, '..', 'data', 'state.json');
-  if (fs.existsSync(statePath)) {
-    try { fs.unlinkSync(statePath); } catch (e) {}
+  // Ensure clean test state before testing
+  const testStatePath = path.join(__dirname, '..', 'data', 'test-state.json');
+  process.env.STATE_FILE = testStatePath;
+  if (fs.existsSync(testStatePath)) {
+    try { fs.unlinkSync(testStatePath); } catch (e) {}
   }
 
   // Start the actual server
@@ -308,9 +309,9 @@ async function runE2ESimulation() {
   console.log('✅ Multi-tab duplicate check and smooth takeover completed cleanly');
 
   console.log('18. Testing Server Restart & State Persistence from data/state.json...');
-  // Verify state file exists and has content
-  assert(fs.existsSync(statePath), 'state.json must exist');
-  const savedState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  // Verify test state file exists and has content
+  assert(fs.existsSync(testStatePath), 'test-state.json must exist');
+  const savedState = JSON.parse(fs.readFileSync(testStatePath, 'utf8'));
   assert(savedState.teams[p1Data.teamId], 'Saved state must contain Player 1 team');
   console.log('✅ Autosave verified: data/state.json contains active teams and scores');
 

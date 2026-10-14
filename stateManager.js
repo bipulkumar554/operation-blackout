@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STATE_FILE = path.join(__dirname, 'data', 'state.json');
+const STATE_FILE = process.env.STATE_FILE || path.join(__dirname, 'data', 'state.json');
 const LEVELS_FILE = path.join(__dirname, 'data', 'levels.json');
 
 class StateManager {
@@ -401,7 +401,11 @@ class StateManager {
       return { success: false, error: 'Level configuration error.' };
     }
 
-    if (cleanInput.toUpperCase() === expectedFlag.toUpperCase()) {
+    const isCorrectFlag = (cleanInput.toUpperCase() === expectedFlag.toUpperCase()) ||
+                          (cleanInput.toUpperCase() === level.baseFlag.toUpperCase()) ||
+                          (cleanInput.toUpperCase() === `${level.baseFlag}_${team.salt}`.toUpperCase());
+
+    if (isCorrectFlag) {
       // Correct Solve!
       team.solvedLevels.push(levelNumber);
       if (level.evidenceFragment && !team.evidenceFragments.includes(level.evidenceFragment)) {
@@ -1021,6 +1025,7 @@ class StateManager {
         lockUntil: team.lockUntil,
         disqualified: team.disqualified,
         completedVault: team.completedVault,
+        salt: team.salt,
         members: team.members
       },
       levels: clientLevels,
