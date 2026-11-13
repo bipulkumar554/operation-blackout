@@ -43,13 +43,13 @@ class StateManager {
   getDefaultState() {
     const defaultTimerMinutes = 6;
     return {
-      gameStatus: 'LOBBY', // LOBBY, RUNNING, PAUSED, ENDED
-      startTime: null,
+      gameStatus: 'RUNNING', // LOBBY, RUNNING, PAUSED, ENDED
+      startTime: Date.now(),
       pausedAt: null,
       activeLevel: 1, // 1 to 5
       levelTimeLimitSeconds: defaultTimerMinutes * 60,
       levelTimeRemaining: defaultTimerMinutes * 60,
-      releasedLevels: [1], // Global released levels
+      releasedLevels: [1, 2, 3, 4, 5], // Global released levels
       teamReleasedLevels: {}, // teamId -> array of level numbers
       entryKey: this.levelsData.story?.entryKey || 'GRID-2026',
       entryKeyRevealed: false,
@@ -81,6 +81,13 @@ class StateManager {
         const parsed = JSON.parse(raw);
         // Merge with default state to ensure schema compatibility
         this.state = Object.assign(this.getDefaultState(), parsed);
+        // Ensure levels 1 to 5 are always released
+        if (!this.state.releasedLevels || this.state.releasedLevels.length < 5) {
+          this.state.releasedLevels = [1, 2, 3, 4, 5];
+        }
+        if (this.state.gameStatus === 'LOBBY') {
+          this.state.gameStatus = 'RUNNING';
+        }
         console.log('Restored state from', STATE_FILE, `(Teams: ${Object.keys(this.state.teams).length}, Players: ${Object.keys(this.state.players).length})`);
       } else {
         this.saveState();
@@ -300,18 +307,19 @@ class StateManager {
     if (!team) return false;
     if (team.disqualified) return false;
 
-    // Must have solved previous levels
-    if (levelNumber > 1) {
-      if (!team.solvedLevels.includes(levelNumber - 1)) {
-        return false;
-      }
+    if (levelNumber <= 1) return true;
+
+    // Must have solved previous level
+    const solvedPrevious = team.solvedLevels.includes(levelNumber - 1);
+    if (!solvedPrevious) {
+      return false;
     }
 
-    // Must be released either globally OR specifically for this team
+    // Accessible if released globally OR specifically for this team OR previous solved
     const globallyReleased = this.state.releasedLevels.includes(levelNumber);
     const teamReleased = (this.state.teamReleasedLevels[teamId] || []).includes(levelNumber);
 
-    return (globallyReleased || teamReleased);
+    return (globallyReleased || teamReleased || solvedPrevious);
   }
 
   verifyLevelKey(teamId, levelNumber, inputKey) {
@@ -324,10 +332,17 @@ class StateManager {
     const expectedKey = (level.levelKey || '').trim().toUpperCase();
     const provided = String(inputKey || '').trim().toUpperCase();
 
-    if (expectedKey === provided) {
-      return { success: true };
+    const matchesFragment = (team.evidenceFragments || []).map(f => f.toUpperCase()).includes(provided);
+
+    const isMatch = (expectedKey !== '' && expectedKey === provided) ||
+                    (expectedKey !== '' && provided.replace(/[^A-Z0-9]/g, '') === expectedKey.replace(/[^A-Z0-9]/g, '')) ||
+                    matchesFragment;
+
+    if (isMatch || expectedKey === '') {
+      this.releaseLevelForTeam(teamId, levelNumber);
+      return { success: true, message: `Door decrypted! Level ${levelNumber} is unlocked.` };
     }
-    return { success: false, error: 'Incorrect Level Key. Consult evidence from previous level.' };
+    return { success: false, error: `Incorrect Level Key. Consult evidence from Level ${levelNumber - 1}.` };
   }
 
   getExpectedSaltedFlag(teamId, levelNumber) {
@@ -354,24 +369,25 @@ class StateManager {
       return { success: false, error: `Team terminal is locked. Try again in ${waitSec}s.` };
     }
 
-    // Rate limit: 1 attempt every 3s
+    // Rate limit: 1 attempt every 1s
     const now = Date.now();
-    if (now - team.lastFlagAttempt < 3000) {
-      return { success: false, error: 'Rate limit: wait 3 seconds before next flag submission.' };
+    if (now - team.lastFlagAttempt < 1000) {
+      return { success: false, error: 'Rate limit: wait 1 second before next flag submission.' };
     }
     team.lastFlagAttempt = now;
 
     // Clean up attempts older than 60s
     team.wrongFlagAttempts = (team.wrongFlagAttempts || []).filter(t => now - t < 60000);
 
-    if (team.wrongFlagAttempts.length >= 5) {
+    if (team.wrongFlagAttempts.length >= 8) {
       team.isLocked = true;
       team.lockUntil = now + 30000;
-      this.recordStrike(teamId, playerId, 'BRUTE_FORCE', 'Lockout: 5 wrong flag attempts within 60 seconds.');
-      return { success: false, error: 'Brute-force protection: 5 failed attempts in 1 min. Locked for 30 seconds.' };
+      this.recordStrike(teamId, playerId, 'BRUTE_FORCE', 'Lockout: 8 wrong flag attempts within 60 seconds.');
+      return { success: false, error: 'Brute-force protection: 8 failed attempts in 1 min. Locked for 30 seconds.' };
     }
 
-    const cleanInput = String(submittedFlag || '').trim();
+    // Clean input: remove surrounding quotes and trim
+    let cleanInput = String(submittedFlag || '').trim().replace(/^["']|["']$/g, '').trim();
 
     // Check if team already solved this level
     if (team.solvedLevels.includes(levelNumber)) {
@@ -401,12 +417,45 @@ class StateManager {
       return { success: false, error: 'Level configuration error.' };
     }
 
-    const isCorrectFlag = (cleanInput.toUpperCase() === expectedFlag.toUpperCase()) ||
-                          (cleanInput.toUpperCase() === level.baseFlag.toUpperCase()) ||
-                          (cleanInput.toUpperCase() === `${level.baseFlag}_${team.salt}`.toUpperCase());
+    const baseFlag = level.baseFlag.trim();
+    const innerToken = baseFlag.replace(/^NIGHT\{/i, '').replace(/\}$/, '').trim();
+
+    // Extract inner token from user input
+    let inputInner = cleanInput;
+    const match = cleanInput.match(/^NIGHT\{([^}]+)\}(?:_([a-f0-9]+))?$/i);
+    if (match) {
+      inputInner = match[1];
+    } else {
+      const saltSuffix = `_${team.salt}`;
+      if (inputInner.toLowerCase().endsWith(saltSuffix.toLowerCase())) {
+        inputInner = inputInner.substring(0, inputInner.length - saltSuffix.length);
+      }
+    }
+
+    // Friendly hint for Level 3 partial attempt
+    if (levelNumber === 3) {
+      if (cleanInput.toUpperCase() === 'CYBER_DEFENSE_GRID' || cleanInput.toUpperCase() === 'NIGHT{CYBER_DEFENSE_GRID}') {
+        return {
+          success: false,
+          error: 'Almost there! Combine Stage 1 with the Morse code keyword from Stage 2: NIGHT{CYBER_DEFENSE_GRID_SHADOW}'
+        };
+      }
+    }
+
+    const isCorrectFlag =
+      (cleanInput.toUpperCase() === expectedFlag.toUpperCase()) ||
+      (cleanInput.toUpperCase() === baseFlag.toUpperCase()) ||
+      (cleanInput.toUpperCase() === `${baseFlag}_${team.salt}`.toUpperCase()) ||
+      (cleanInput.toUpperCase() === innerToken.toUpperCase()) ||
+      (cleanInput.toUpperCase() === `${innerToken}_${team.salt}`.toUpperCase()) ||
+      (inputInner.toUpperCase() === innerToken.toUpperCase());
 
     if (isCorrectFlag) {
-      // Correct Solve!
+      // Correct Solve! Reset wrong attempts
+      team.wrongFlagAttempts = [];
+      team.isLocked = false;
+      team.lockUntil = 0;
+
       team.solvedLevels.push(levelNumber);
       if (level.evidenceFragment && !team.evidenceFragments.includes(level.evidenceFragment)) {
         team.evidenceFragments.push(level.evidenceFragment);
@@ -448,9 +497,10 @@ class StateManager {
       // Drop trace meter by 30% on clean solve
       team.trace = Math.max(0, team.trace - 30);
 
-      // Advance team's current level
+      // Advance team's current level & unlock next level
       if (levelNumber < 5) {
         team.currentLevel = levelNumber + 1;
+        this.releaseLevelForTeam(teamId, levelNumber + 1);
       } else {
         team.completedVault = true;
         team.vaultFinishTime = now;
@@ -505,14 +555,17 @@ class StateManager {
     const team = this.state.teams[teamId];
     if (!team) return { success: false, error: 'Team not found.' };
 
-    const expectedInsider = 'EMP-4471';
-    const expectedHacker = 'SHADOW-X';
-
     const cleanInsider = String(insiderId || '').trim().toUpperCase();
     const cleanHacker = String(hackerAlias || '').trim().toUpperCase();
+    const normInsider = cleanInsider.replace(/[^A-Z0-9]/g, '');
+    const normHacker = cleanHacker.replace(/[^A-Z0-9]/g, '');
 
-    if (cleanInsider === expectedInsider && cleanHacker === expectedHacker) {
-      // Level 5 (Vault) solved!
+    const isInsiderMatch = (cleanInsider === 'EMP-4471' || normInsider === 'EMP4471' || cleanInsider === 'EMP-44-71' || normInsider === '4471');
+    const isHackerMatch = (cleanHacker === 'SHADOW-X' || normHacker === 'SHADOWX' || cleanHacker === 'SHADOW');
+
+    if (isInsiderMatch && isHackerMatch) {
+      // Reset flag rate limit for winning submission
+      team.lastFlagAttempt = 0;
       return this.submitFlag(teamId, playerId, 5, this.getExpectedSaltedFlag(teamId, 5));
     } else {
       team.score = Math.max(0, team.score - 10);
@@ -520,7 +573,7 @@ class StateManager {
       this.triggerStateChange();
       return {
         success: false,
-        error: 'OVERRIDE REJECTED: Insider credential ID or Hacker alias mismatch. -10 pts.'
+        error: 'OVERRIDE REJECTED: Insider credential ID (EMP-4471) or Hacker alias (SHADOW-X) mismatch. -10 pts.'
       };
     }
   }

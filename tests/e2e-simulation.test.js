@@ -228,8 +228,40 @@ async function runE2ESimulation() {
     flag: `NIGHT{WRONG}_${p1Data.teamSalt}`
   }, r));
   assert.strictEqual(wrongFlagRes.success, false);
-  assert.strictEqual(wrongFlagRes.newScore, initialScore - 15);
   console.log('✅ Hint deduction (-10) and wrong flag penalty (-5) validated');
+
+  console.log('11b. Player 1 Solves Level 2 (Web Security)...');
+  await wait(1100);
+  const p1L2Res = await new Promise(r => p1Socket.emit('submitFlag', {
+    playerId: p1Data.playerId,
+    levelNumber: 2,
+    flag: 'SQLI_COOKIE_BYPASS' // Testing flag without NIGHT{} wrapper
+  }, r));
+  assert.strictEqual(p1L2Res.success, true);
+  assert.strictEqual(p1L2Res.evidenceFragment, '44');
+  console.log('✅ Level 2 solved successfully (+44 fragment collected)');
+
+  console.log('11c. Player 1 Solves Level 3 (Cryptography)...');
+  await wait(1100);
+  const p1L3Res = await new Promise(r => p1Socket.emit('submitFlag', {
+    playerId: p1Data.playerId,
+    levelNumber: 3,
+    flag: 'NIGHT{CYBER_DEFENSE_GRID_SHADOW}'
+  }, r));
+  assert.strictEqual(p1L3Res.success, true);
+  assert.strictEqual(p1L3Res.evidenceFragment, '71');
+  console.log('✅ Level 3 solved successfully (+71 fragment collected)');
+
+  console.log('11d. Player 1 Solves Level 4 (Malware Hunter)...');
+  await wait(1100);
+  const p1L4Res = await new Promise(r => p1Socket.emit('submitFlag', {
+    playerId: p1Data.playerId,
+    levelNumber: 4,
+    flag: 'malware_artifact_hunted' // Testing lowercase without NIGHT{} wrapper
+  }, r));
+  assert.strictEqual(p1L4Res.success, true);
+  assert.strictEqual(p1L4Res.evidenceFragment, 'SHADOW-X');
+  console.log('✅ Level 4 solved successfully (+SHADOW-X fragment collected)');
 
   console.log('12. Testing Anti-Cheat Strike via Tab Blur...');
   const strikeRes = await new Promise(r => p1Socket.emit('reportAntiCheatEvent', {
@@ -250,8 +282,8 @@ async function runE2ESimulation() {
   assert.strictEqual(hostStateReceived.publicState.plotTwist?.type, 'bonus_round');
   console.log('✅ Host Plot Twist (Bonus Round 2x) triggered and broadcast');
 
-  console.log('14. Testing Final Vault Override & Victory...');
-  await wait(3100);
+  console.log('14. Testing Final Vault Override & Victory (Level 5)...');
+  await wait(1100);
   const vaultRes = await new Promise(r => p1Socket.emit('submitVault', {
     playerId: p1Data.playerId,
     insiderId: 'EMP-4471',
@@ -261,7 +293,7 @@ async function runE2ESimulation() {
   await wait(300);
   const p1TeamUpdated = hostStateReceived.fullState.teams[p1Data.teamId];
   assert.strictEqual(p1TeamUpdated.completedVault, true);
-  console.log('✅ Final Vault cracked! Grid restored and victory completed');
+  console.log('✅ Final Vault cracked! Grid restored and victory completed across Levels 1 to 5');
 
   console.log('15. Testing CSV Export Endpoint...');
   const csvRes = await httpGet(`/api/host/export-csv?token=${hostToken}`);

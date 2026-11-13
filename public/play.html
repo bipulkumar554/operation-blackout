@@ -203,6 +203,9 @@
           </div>
         </div>
 
+        <!-- Mission Progress / Level Navigation Bar -->
+        <div class="mission-nav-bar" id="mission-nav-bar" style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px;"></div>
+
         <div class="game-viewport">
           <!-- MAIN CHALLENGE CARD -->
           <div class="challenge-column">
@@ -216,10 +219,12 @@
               <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
                 Enter the evidence fragment collected from your previous mission solve to decrypt the door to this level.
               </p>
-              <form id="form-level-key" class="flex-row">
-                <input type="text" id="input-level-key" class="input" placeholder="Level key from previous fragment" required autocomplete="off">
-                <button type="submit" class="btn btn-warning">Decrypt Door</button>
+              <form id="form-level-key" class="flex-row" style="gap:10px; flex-wrap:wrap;">
+                <input type="text" id="input-level-key" class="input" style="flex:1; min-width:200px;" placeholder="Level key (e.g. EMP, 44, 71, SHADOW-X)" required autocomplete="off">
+                <button type="submit" class="btn btn-warning" id="btn-submit-level-key">Decrypt Door</button>
+                <button type="button" class="btn btn-primary" id="btn-autofill-fragment-key" style="display:none;">⚡ Use Previous Fragment</button>
               </form>
+              <div id="level-key-feedback" style="font-size:12px; margin-top:8px;"></div>
             </div>
 
             <!-- Active Level Content Card -->

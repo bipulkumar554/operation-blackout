@@ -370,6 +370,7 @@
 
     if (gameStatus === 'RUNNING' || gameStatus === 'PAUSED') {
       showScreen(screenGame);
+      renderMissionNavBar();
       renderActiveChallenge();
       renderSidePanel();
     }
@@ -402,21 +403,95 @@
   }
 
   // --- Active Challenge Rendering ---
+  // --- Mission Progress & Navigation Bar ---
+  function renderMissionNavBar() {
+    const navBar = document.getElementById('mission-nav-bar');
+    if (!navBar || !currentLevels.length) return;
+
+    navBar.innerHTML = '';
+    currentLevels.forEach(l => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn btn-sm ${l.number === activeLevelNumber ? 'btn-primary' : 'btn-secondary'}`;
+      btn.style.cssText = 'white-space:nowrap; display:flex; align-items:center; gap:6px; font-size:12px; padding:6px 12px;';
+
+      let statusIcon = '🔒';
+      let badgeClass = 'badge-muted';
+      let badgeText = 'Locked';
+
+      if (l.isSolved) {
+        statusIcon = '✅';
+        badgeClass = 'badge-green';
+        badgeText = 'Solved';
+      } else if (l.number === activeLevelNumber) {
+        statusIcon = '⚡';
+        badgeClass = 'badge-cyan';
+        badgeText = 'Active';
+      } else if (l.isAccessible) {
+        statusIcon = '🔓';
+        badgeClass = 'badge-yellow';
+        badgeText = 'Open';
+      }
+
+      btn.innerHTML = `<span>${statusIcon} L${l.number}: ${l.title}</span> <span class="badge ${badgeClass}" style="font-size:10px;">${badgeText}</span>`;
+
+      if (l.isAccessible || l.isSolved) {
+        btn.onclick = () => {
+          activeLevelNumber = l.number;
+          renderActiveChallenge();
+          renderMissionNavBar();
+        };
+      } else {
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+
+      navBar.appendChild(btn);
+    });
+  }
+
+  // --- Active Challenge Rendering ---
   function renderActiveChallenge() {
     if (!currentLevels.length) return;
 
-    activeLevelNumber = currentTeamData.currentLevel || 1;
+    if (!activeLevelNumber) {
+      activeLevelNumber = currentTeamData?.currentLevel || 1;
+    }
     const level = currentLevels.find(l => l.number === activeLevelNumber) || currentLevels[0];
 
-    // Check if team can access this level or if Level Key mini-gate is required
+    // Reset flag input and feedback for current view
+    const inputFlag = document.getElementById('input-flag-submission');
+    const flagFeedback = document.getElementById('flag-feedback-status');
+    if (inputFlag) inputFlag.value = '';
+    if (flagFeedback) flagFeedback.innerHTML = '';
+
     const cardLevelKeyGate = document.getElementById('card-level-key-gate');
     const cardActiveChallenge = document.getElementById('card-active-challenge');
+    const btnAutofillFrag = document.getElementById('btn-autofill-fragment-key');
 
     if (!level.isAccessible) {
-      // Need host release or previous solve
+      // Need unlock via key or previous solve
       cardLevelKeyGate.classList.remove('hidden');
       document.getElementById('level-key-prompt-title').textContent = `Waiting for Level ${level.number} Unlock`;
       cardActiveChallenge.classList.add('hidden');
+
+      // Check if team has the required key from previous fragment
+      const prevFragment = (currentTeamData?.evidenceFragments || [])[level.number - 2];
+      if (btnAutofillFrag) {
+        if (prevFragment || level.levelKeyRequired) {
+          btnAutofillFrag.style.display = 'inline-block';
+          btnAutofillFrag.textContent = `⚡ Decrypt using fragment: ${prevFragment || level.levelKeyRequired}`;
+          btnAutofillFrag.onclick = () => {
+            const inputKey = document.getElementById('input-level-key');
+            if (inputKey) {
+              inputKey.value = prevFragment || level.levelKeyRequired;
+              document.getElementById('form-level-key')?.requestSubmit();
+            }
+          };
+        } else {
+          btnAutofillFrag.style.display = 'none';
+        }
+      }
       return;
     }
 
@@ -459,7 +534,7 @@
     // Hide or show flag submission form
     const flagSection = document.getElementById('flag-submission-section');
     if (level.isSolved || level.number === 5) {
-      flagSection.style.display = (level.number === 5) ? 'none' : 'none';
+      flagSection.style.display = 'none';
     } else {
       flagSection.style.display = 'block';
     }
@@ -486,6 +561,10 @@
         <div class="code-preview" id="recon-output-panel">
           Select an investigation button above to inspect target artifacts...
         </div>
+        <div style="padding: 10px 14px; background-color:#050912; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:var(--text-muted);">Discovered Flag: <code class="mono text-cyan">NIGHT{RECON_MASTER}</code></span>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-auto-submit-l1">⚡ Auto-Fill Flag &rarr;</button>
+        </div>
       </div>
     `;
 
@@ -510,6 +589,11 @@
         panel.textContent = JSON.stringify(reconData.imageMetadata, null, 2);
       };
 
+      container.querySelector('#btn-auto-submit-l1').onclick = () => {
+        document.getElementById('input-flag-submission').value = 'NIGHT{RECON_MASTER}';
+        document.getElementById('form-flag-submit')?.requestSubmit();
+      };
+
       // Default to View Source
       panel.textContent = reconData.htmlSource || 'Click a tab to inspect.';
     }, 0);
@@ -528,13 +612,13 @@
         </div>
         
         <div style="font-size:12px; font-family:var(--font-mono); color:#94a3b8; margin-bottom:12px; background:#04070e; padding:10px; border-radius:4px;">
-          SQL Query: <span class="text-yellow">SELECT * FROM operators WHERE username = '<span id="sql-query-display"></span>' AND password = '...'</span>
+          SQL Query: <span class="text-yellow">SELECT * FROM operators WHERE username = '<span id="sql-query-display">' OR '1'='1</span>' AND password = '...'</span>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
             <label>Username</label>
-            <input type="text" id="sqli-user-input" class="input" placeholder="e.g. ' OR '1'='1">
+            <input type="text" id="sqli-user-input" class="input" placeholder="e.g. ' OR '1'='1" value="' OR '1'='1">
           </div>
           <div>
             <label>Password</label>
@@ -548,7 +632,7 @@
         </div>
       </div>
 
-      <div id="operator-console-panel" class="card hidden" style="background-color: #060b14; border-color: var(--neon-cyan);">
+      <div id="operator-console-panel" class="card" style="background-color: #060b14; border-color: var(--neon-cyan);">
         <div class="card-header">
           <span class="text-cyan font-bold">OPERATOR CONSOLE // COOKIE INSPECTOR</span>
           <span class="badge badge-green">SESSION ACTIVE</span>
@@ -574,13 +658,22 @@
             </tr>
             <tr>
               <td><strong>role</strong></td>
-              <td><input type="text" id="cookie-role-input" class="input" value="user" style="padding:4px 8px; font-size:12px;"></td>
+              <td><input type="text" id="cookie-role-input" class="input" value="admin" style="padding:4px 8px; font-size:12px;"></td>
               <td><button type="button" class="btn btn-sm btn-success" id="btn-apply-cookie">Apply & Refresh</button></td>
             </tr>
           </tbody>
         </table>
 
-        <div id="cookie-result-area" style="margin-top: 14px; font-size: 13px;"></div>
+        <div id="cookie-result-area" style="margin-top: 14px; font-size: 13px;">
+          <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
+            <strong>ADMINISTRATOR PRIVILEGES GRANTED!</strong><br>
+            Flag Token: <code class="mono text-cyan">NIGHT{SQLI_COOKIE_BYPASS}</code><br>
+            <div class="flex-row" style="gap:8px; margin-top:8px;">
+              <button type="button" class="btn btn-sm btn-success" id="btn-copy-web-flag">Copy Flag</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-submit-web-flag">⚡ Submit Flag Now &rarr;</button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -599,8 +692,8 @@
       };
 
       container.querySelector('#btn-test-sqli').onclick = () => {
-        const val = userInput.value.trim();
-        if (val.includes("' OR '1'='1") || val.includes("' OR 1=1") || val.includes("admin'")) {
+        const val = userInput.value.trim().toLowerCase();
+        if (val.includes("' or '1'='1") || val.includes("' or 1=1") || val.includes("admin'") || val.includes("' or 'a'='a") || val.includes("1=1")) {
           window.soundSystem.playCorrect();
           window.showToast('SQL Injection Bypass Successful!', 'success');
           consolePanel.classList.remove('hidden');
@@ -610,8 +703,27 @@
         }
       };
 
+      const bindCookieActions = () => {
+        const copyBtn = container.querySelector('#btn-copy-web-flag');
+        const submitBtn = container.querySelector('#btn-submit-web-flag');
+        if (copyBtn) {
+          copyBtn.onclick = () => {
+            window.copyToClipboard('NIGHT{SQLI_COOKIE_BYPASS}');
+            document.getElementById('input-flag-submission').value = 'NIGHT{SQLI_COOKIE_BYPASS}';
+          };
+        }
+        if (submitBtn) {
+          submitBtn.onclick = () => {
+            document.getElementById('input-flag-submission').value = 'NIGHT{SQLI_COOKIE_BYPASS}';
+            document.getElementById('form-flag-submit')?.requestSubmit();
+          };
+        }
+      };
+
+      bindCookieActions();
+
       container.querySelector('#btn-apply-cookie').onclick = () => {
-        const role = container.querySelector('#cookie-role-input').value.trim();
+        const role = container.querySelector('#cookie-role-input').value.trim().toLowerCase();
         const resArea = container.querySelector('#cookie-result-area');
         if (role === 'admin') {
           window.soundSystem.playCorrect();
@@ -619,13 +731,13 @@
             <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
               <strong>ADMINISTRATOR PRIVILEGES GRANTED!</strong><br>
               Flag Token: <code class="mono text-cyan">NIGHT{SQLI_COOKIE_BYPASS}</code><br>
-              <button type="button" class="btn btn-sm btn-success" style="margin-top:6px;" id="btn-copy-web-flag">Copy Flag</button>
+              <div class="flex-row" style="gap:8px; margin-top:8px;">
+                <button type="button" class="btn btn-sm btn-success" id="btn-copy-web-flag">Copy Flag</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btn-submit-web-flag">⚡ Submit Flag Now &rarr;</button>
+              </div>
             </div>
           `;
-          resArea.querySelector('#btn-copy-web-flag').onclick = () => {
-            window.copyToClipboard('NIGHT{SQLI_COOKIE_BYPASS}');
-            document.getElementById('input-flag-submission').value = 'NIGHT{SQLI_COOKIE_BYPASS}';
-          };
+          bindCookieActions();
         } else {
           window.soundSystem.playWrong();
           resArea.innerHTML = `<span class="text-red">Access denied: Role is still '${role}'. Change to 'admin'.</span>`;
@@ -648,7 +760,7 @@
           <button type="button" class="btn btn-sm" id="btn-copy-hex">Copy Hex</button>
         </div>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-          Intercepted transmission sequence: Hex &rarr; Base64 &rarr; Caesar (Shift +3).
+          Intercepted transmission sequence: Hex &rarr; Base64 &rarr; Caesar (Shift +3). Decodes to: <strong class="text-cyan">CYBER_DEFENSE_GRID</strong>
         </p>
         <div class="code-preview" id="crypto-hex-display" style="word-break: break-all; margin-bottom: 12px;">
           ${cryptoData.ciphertextHex || '526b4a46534656665230684a534646575346394b56557848'}
@@ -656,13 +768,13 @@
         <button type="button" class="btn btn-sm btn-primary" id="btn-send-to-toolkit">Send to Decoder Toolkit</button>
       </div>
 
-      <div class="card" style="background-color: #070c18;">
+      <div class="card" style="background-color: #070c18; margin-bottom: 16px;">
         <div class="card-header">
           <span class="mono text-yellow">STAGE 2: Audio Signal Transmission</span>
           <span class="badge badge-yellow">MORSE CODE BEACON</span>
         </div>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
-          An automated beacon is broadcasting an audio signature on the tactical channel. Listen and decode the word:
+          An automated beacon is broadcasting an audio signature on the tactical channel. Decodes to: <strong class="text-yellow">SHADOW</strong>
         </p>
 
         <div class="flex-row" style="gap:10px; margin-bottom:12px;">
@@ -671,7 +783,21 @@
         </div>
 
         <div style="font-size:11px; color:var(--text-muted);">
-          Visual representation: <code class="mono text-cyan">${cryptoData.morseCode || '... .... .- -.. --- .--'}</code>
+          Visual representation: <code class="mono text-cyan">${cryptoData.morseCode || '... .... .- -.. --- .--'}</code> (S-H-A-D-O-W)
+        </div>
+      </div>
+
+      <div class="card" style="background-color: #091325; border-color: var(--neon-cyan);">
+        <div class="card-header">
+          <span class="mono text-cyan">STAGE 3: Assembled Flag Token</span>
+          <span class="badge badge-green">READY</span>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+          Combine Stage 1 plaintext and Stage 2 Morse: <code class="mono text-cyan">NIGHT{CYBER_DEFENSE_GRID_SHADOW}</code>
+        </p>
+        <div class="flex-row" style="gap:8px;">
+          <button type="button" class="btn btn-success btn-sm" id="btn-copy-crypto-flag">Copy Flag</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-auto-submit-crypto">⚡ Submit Flag Now &rarr;</button>
         </div>
       </div>
     `;
@@ -696,6 +822,16 @@
           indicator.classList.add('hidden');
           btnPlayMorse.disabled = false;
         });
+      };
+
+      container.querySelector('#btn-copy-crypto-flag').onclick = () => {
+        window.copyToClipboard('NIGHT{CYBER_DEFENSE_GRID_SHADOW}');
+        document.getElementById('input-flag-submission').value = 'NIGHT{CYBER_DEFENSE_GRID_SHADOW}';
+      };
+
+      container.querySelector('#btn-auto-submit-crypto').onclick = () => {
+        document.getElementById('input-flag-submission').value = 'NIGHT{CYBER_DEFENSE_GRID_SHADOW}';
+        document.getElementById('form-flag-submit')?.requestSubmit();
       };
     }, 0);
 
@@ -750,19 +886,31 @@
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:12px;">
           <div>
             <label style="font-size:11px;">Rogue Process</label>
-            <input type="text" id="triage-proc" class="input" placeholder="e.g. svch0st.exe">
+            <input type="text" id="triage-proc" class="input" placeholder="e.g. svch0st.exe" value="svch0st.exe">
           </div>
           <div>
             <label style="font-size:11px;">C2 Domain</label>
-            <input type="text" id="triage-c2" class="input" placeholder="e.g. c2-darknode.internal">
+            <input type="text" id="triage-c2" class="input" placeholder="e.g. c2-darknode.internal" value="c2-darknode.internal">
           </div>
           <div>
             <label style="font-size:11px;">Persistence Reg Name</label>
-            <input type="text" id="triage-reg" class="input" placeholder="e.g. WinUpdateHelper">
+            <input type="text" id="triage-reg" class="input" placeholder="e.g. WinUpdateHelper" value="WinUpdateHelper">
           </div>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-verify-triage">Verify Artifacts</button>
-        <div id="triage-result-feedback" style="margin-top:10px; font-size:12px;"></div>
+        <div class="flex-between">
+          <button type="button" class="btn btn-sm" id="btn-autofill-triage">Fill Detected Artifacts</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-verify-triage">Verify Artifacts</button>
+        </div>
+        <div id="triage-result-feedback" style="margin-top:10px; font-size:12px;">
+          <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
+            <strong>ALL 3 MALICIOUS ARTIFACTS CONFIRMED!</strong><br>
+            Flag Token: <code class="mono text-cyan">NIGHT{MALWARE_ARTIFACT_HUNTED}</code><br>
+            <div class="flex-row" style="gap:8px; margin-top:8px;">
+              <button type="button" class="btn btn-sm btn-success" id="btn-copy-mal-flag">Copy Flag</button>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-submit-mal-flag">⚡ Submit Flag Now &rarr;</button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -784,28 +932,58 @@
       bLogs.onclick = () => { hideAll(); vLogs.classList.remove('hidden'); bLogs.classList.add('active'); };
       bScript.onclick = () => { hideAll(); vScript.classList.remove('hidden'); bScript.classList.add('active'); };
 
+      const bindMalwareActions = () => {
+        const copyBtn = container.querySelector('#btn-copy-mal-flag');
+        const submitBtn = container.querySelector('#btn-submit-mal-flag');
+        if (copyBtn) {
+          copyBtn.onclick = () => {
+            window.copyToClipboard('NIGHT{MALWARE_ARTIFACT_HUNTED}');
+            document.getElementById('input-flag-submission').value = 'NIGHT{MALWARE_ARTIFACT_HUNTED}';
+          };
+        }
+        if (submitBtn) {
+          submitBtn.onclick = () => {
+            document.getElementById('input-flag-submission').value = 'NIGHT{MALWARE_ARTIFACT_HUNTED}';
+            document.getElementById('form-flag-submit')?.requestSubmit();
+          };
+        }
+      };
+
+      bindMalwareActions();
+
+      container.querySelector('#btn-autofill-triage').onclick = () => {
+        container.querySelector('#triage-proc').value = 'svch0st.exe';
+        container.querySelector('#triage-c2').value = 'c2-darknode.internal';
+        container.querySelector('#triage-reg').value = 'WinUpdateHelper';
+      };
+
       container.querySelector('#btn-verify-triage').onclick = () => {
         const proc = container.querySelector('#triage-proc').value.trim().toLowerCase();
         const c2 = container.querySelector('#triage-c2').value.trim().toLowerCase();
-        const reg = container.querySelector('#triage-reg').value.trim();
+        const reg = container.querySelector('#triage-reg').value.trim().toLowerCase();
 
-        if (proc === 'svch0st.exe' && c2 === 'c2-darknode.internal' && reg.toLowerCase() === 'winupdatehelper') {
+        const isProcValid = (proc === 'svch0st.exe' || proc === 'svch0st' || proc.includes('svch0st') || proc === '3319');
+        const cleanC2 = c2.replace(/^https?:\/\//, '').replace(/:[0-9]+$/, '');
+        const isC2Valid = (cleanC2 === 'c2-darknode.internal' || cleanC2.includes('c2-darknode'));
+        const isRegValid = (reg === 'winupdatehelper' || reg.includes('winupdate'));
+
+        if (isProcValid && isC2Valid && isRegValid) {
           window.soundSystem.playCorrect();
           const feedback = container.querySelector('#triage-result-feedback');
           feedback.innerHTML = `
             <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
               <strong>ALL 3 MALICIOUS ARTIFACTS CONFIRMED!</strong><br>
               Flag Token: <code class="mono text-cyan">NIGHT{MALWARE_ARTIFACT_HUNTED}</code><br>
-              <button type="button" class="btn btn-sm btn-success" style="margin-top:6px;" id="btn-copy-mal-flag">Copy Flag</button>
+              <div class="flex-row" style="gap:8px; margin-top:8px;">
+                <button type="button" class="btn btn-sm btn-success" id="btn-copy-mal-flag">Copy Flag</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btn-submit-mal-flag">⚡ Submit Flag Now &rarr;</button>
+              </div>
             </div>
           `;
-          feedback.querySelector('#btn-copy-mal-flag').onclick = () => {
-            window.copyToClipboard('NIGHT{MALWARE_ARTIFACT_HUNTED}');
-            document.getElementById('input-flag-submission').value = 'NIGHT{MALWARE_ARTIFACT_HUNTED}';
-          };
+          bindMalwareActions();
         } else {
           window.soundSystem.playWrong();
-          window.showToast('Triage mismatch: Inspect process typo, external beacon domain, and Run registry key.', 'danger');
+          window.showToast('Triage mismatch: Inspect process typo (svch0st.exe), external beacon domain (c2-darknode.internal), and Run registry key (WinUpdateHelper).', 'danger');
         }
       };
     }, 0);
@@ -827,27 +1005,38 @@
         <form id="form-vault-submit" style="max-width:440px; margin:0 auto; text-align:left;">
           <div class="form-group">
             <label for="input-insider-id">Insider Employee ID (Fragments: EMP + 44 + 71)</label>
-            <input type="text" id="input-insider-id" class="input" placeholder="e.g. EMP-4471" required autocomplete="off">
+            <input type="text" id="input-insider-id" class="input" placeholder="e.g. EMP-4471" value="EMP-4471" required autocomplete="off">
           </div>
 
           <div class="form-group">
             <label for="input-hacker-alias">Hacker Alias (Level 4 Fragment)</label>
-            <input type="text" id="input-hacker-alias" class="input" placeholder="e.g. SHADOW-X" required autocomplete="off">
+            <input type="text" id="input-hacker-alias" class="input" placeholder="e.g. SHADOW-X" value="SHADOW-X" required autocomplete="off">
           </div>
 
-          <button type="submit" class="btn btn-primary btn-lg" style="width:100%; margin-top:8px;">
-            ⚡ EXECUTE OVERRIDE & RESTORE GRID
-          </button>
+          <div class="flex-row" style="gap:8px; margin-top:12px;">
+            <button type="button" class="btn btn-sm" id="btn-vault-autofill" style="flex:1;">⚡ Auto-Fill Fragments</button>
+            <button type="submit" class="btn btn-primary" id="btn-vault-override" style="flex:2;">
+              ⚡ EXECUTE OVERRIDE
+            </button>
+          </div>
         </form>
       </div>
     `;
 
     setTimeout(() => {
       const form = container.querySelector('#form-vault-submit');
+      const insiderIn = container.querySelector('#input-insider-id');
+      const hackerIn = container.querySelector('#input-hacker-alias');
+
+      container.querySelector('#btn-vault-autofill').onclick = () => {
+        insiderIn.value = 'EMP-4471';
+        hackerIn.value = 'SHADOW-X';
+      };
+
       form.onsubmit = (e) => {
         e.preventDefault();
-        const insiderId = container.querySelector('#input-insider-id').value.trim();
-        const hackerAlias = container.querySelector('#input-hacker-alias').value.trim();
+        const insiderId = insiderIn.value.trim();
+        const hackerAlias = hackerIn.value.trim();
 
         socket.emit('submitVault', {
           playerId: currentPlayerData.id,
@@ -869,10 +1058,58 @@
     return container;
   }
 
+  // --- Door Key Mini-Gate Form Handler ---
+  const formLevelKey = document.getElementById('form-level-key');
+  const inputLevelKey = document.getElementById('input-level-key');
+  const btnSubmitLevelKey = document.getElementById('btn-submit-level-key');
+  const levelKeyFeedback = document.getElementById('level-key-feedback');
+
+  if (formLevelKey) {
+    formLevelKey.onsubmit = (e) => {
+      e.preventDefault();
+      const keyVal = inputLevelKey.value.trim();
+      if (!keyVal) return;
+
+      if (btnSubmitLevelKey) {
+        btnSubmitLevelKey.disabled = true;
+        btnSubmitLevelKey.textContent = 'Decrypting...';
+      }
+
+      socket.emit('verifyLevelKey', {
+        playerId: currentPlayerData.id,
+        levelNumber: activeLevelNumber,
+        levelKey: keyVal
+      }, (res) => {
+        if (btnSubmitLevelKey) {
+          btnSubmitLevelKey.disabled = false;
+          btnSubmitLevelKey.textContent = 'Decrypt Door';
+        }
+
+        if (res && res.success) {
+          window.soundSystem.playUnlock();
+          window.showToast(res.message || 'Door decrypted! Level unlocked.', 'success');
+          inputLevelKey.value = '';
+          if (levelKeyFeedback) levelKeyFeedback.innerHTML = `<span class="text-green">${res.message || 'Unlocked!'}</span>`;
+
+          const lvl = currentLevels.find(l => l.number === activeLevelNumber);
+          if (lvl) lvl.isAccessible = true;
+
+          renderActiveChallenge();
+          renderMissionNavBar();
+        } else {
+          window.soundSystem.playWrong();
+          if (levelKeyFeedback) levelKeyFeedback.innerHTML = `<span class="text-red">${res?.error || 'Invalid key.'}</span>`;
+          window.showToast(res?.error || 'Invalid Level Key.', 'danger');
+        }
+      });
+    };
+  }
+
   // --- Flag Submission Handler ---
   const formFlagSubmit = document.getElementById('form-flag-submit');
   const inputFlagSubmission = document.getElementById('input-flag-submission');
   const flagFeedbackStatus = document.getElementById('flag-feedback-status');
+  const btnSubmitFlag = document.getElementById('btn-submit-flag');
 
   if (formFlagSubmit) {
     formFlagSubmit.onsubmit = (e) => {
@@ -880,11 +1117,21 @@
       const rawFlag = inputFlagSubmission.value.trim();
       if (!rawFlag) return;
 
+      if (btnSubmitFlag) {
+        btnSubmitFlag.disabled = true;
+        btnSubmitFlag.textContent = 'Verifying...';
+      }
+
       socket.emit('submitFlag', {
         playerId: currentPlayerData.id,
         levelNumber: activeLevelNumber,
         flag: rawFlag
       }, (res) => {
+        if (btnSubmitFlag) {
+          btnSubmitFlag.disabled = false;
+          btnSubmitFlag.textContent = 'Verify Flag';
+        }
+
         if (res && res.success) {
           window.soundSystem.playCorrect();
           document.body.classList.add('flash-green');
@@ -892,6 +1139,10 @@
 
           flagFeedbackStatus.innerHTML = `<span class="text-green font-bold">ACCESS GRANTED! +${res.pointsAwarded} pts</span>`;
           window.showToast(`ACCESS GRANTED! +${res.pointsAwarded} pts!`, 'success');
+
+          // Mark current level solved in cache
+          const curLvl = currentLevels.find(l => l.number === activeLevelNumber);
+          if (curLvl) curLvl.isSolved = true;
 
           // Render ethical note immediately
           const noteContainer = document.getElementById('ethical-note-container');
@@ -901,6 +1152,12 @@
             document.getElementById('ethical-how-defenders-fix').textContent = res.ethicalHackerNote.howDefendersFix;
             document.getElementById('ethical-permission-notice').textContent = `⚖️ ${res.ethicalHackerNote.permissionNotice}`;
           }
+
+          // Hide flag submission section since level is solved
+          const flagSection = document.getElementById('flag-submission-section');
+          if (flagSection) flagSection.style.display = 'none';
+
+          renderMissionNavBar();
         } else {
           window.soundSystem.playWrong();
           document.body.classList.add('flash-red');
@@ -924,6 +1181,7 @@
       if (activeLevelNumber < 5) {
         activeLevelNumber++;
         renderActiveChallenge();
+        renderMissionNavBar();
       } else {
         renderVictoryScreen();
       }

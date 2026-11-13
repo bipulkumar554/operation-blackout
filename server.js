@@ -433,6 +433,9 @@ io.on('connection', (socket) => {
       if (typeof callback === 'function') {
         callback(result);
       }
+      if (result && result.success) {
+        broadcastStateUpdate();
+      }
     } catch (e) {
       callback?.({ success: false, error: e.message });
     }
