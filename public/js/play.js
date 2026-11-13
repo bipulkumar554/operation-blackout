@@ -450,20 +450,19 @@
     });
   }
 
+  // Track currently mounted level and its state to avoid wiping active inputs
+  let currentMountedLevel = null;
+  let currentMountedSolved = null;
+  let currentMountedAccessible = null;
+
   // --- Active Challenge Rendering ---
-  function renderActiveChallenge() {
+  function renderActiveChallenge(force = false) {
     if (!currentLevels.length) return;
 
     if (!activeLevelNumber) {
       activeLevelNumber = currentTeamData?.currentLevel || 1;
     }
     const level = currentLevels.find(l => l.number === activeLevelNumber) || currentLevels[0];
-
-    // Reset flag input and feedback for current view
-    const inputFlag = document.getElementById('input-flag-submission');
-    const flagFeedback = document.getElementById('flag-feedback-status');
-    if (inputFlag) inputFlag.value = '';
-    if (flagFeedback) flagFeedback.innerHTML = '';
 
     const cardLevelKeyGate = document.getElementById('card-level-key-gate');
     const cardActiveChallenge = document.getElementById('card-active-challenge');
@@ -492,17 +491,43 @@
           btnAutofillFrag.style.display = 'none';
         }
       }
+      currentMountedLevel = level.number;
+      currentMountedSolved = level.isSolved;
+      currentMountedAccessible = false;
       return;
     }
+
+    cardLevelKeyGate.classList.add('hidden');
+    cardActiveChallenge.classList.remove('hidden');
+
+    // ONLY re-mount DOM if level changed, or solved state changed, or forced!
+    // This PREVENTS user typing from ever getting deleted by periodic background ticks!
+    const needsMount = force ||
+      (currentMountedLevel !== level.number) ||
+      (currentMountedSolved !== level.isSolved) ||
+      (currentMountedAccessible !== true);
+
+    if (!needsMount) {
+      return;
+    }
+
+    // Only clear input when switching to a different level number
+    if (currentMountedLevel !== level.number) {
+      const inputFlag = document.getElementById('input-flag-submission');
+      const flagFeedback = document.getElementById('flag-feedback-status');
+      if (inputFlag) inputFlag.value = '';
+      if (flagFeedback) flagFeedback.innerHTML = '';
+    }
+
+    currentMountedLevel = level.number;
+    currentMountedSolved = level.isSolved;
+    currentMountedAccessible = true;
 
     // Header info
     document.getElementById('badge-level-num').textContent = `LEVEL ${level.number}`;
     document.getElementById('challenge-title').textContent = level.title;
     document.getElementById('challenge-description').textContent = level.description;
     document.getElementById('challenge-points-val').textContent = `${level.points} pts`;
-
-    cardLevelKeyGate.classList.add('hidden');
-    cardActiveChallenge.classList.remove('hidden');
 
     // Mount interactive challenge UI based on challenge type
     const mount = document.getElementById('challenge-interactive-mount');
@@ -612,17 +637,17 @@
         </div>
         
         <div style="font-size:12px; font-family:var(--font-mono); color:#94a3b8; margin-bottom:12px; background:#04070e; padding:10px; border-radius:4px;">
-          SQL Query: <span class="text-yellow">SELECT * FROM operators WHERE username = '<span id="sql-query-display">' OR '1'='1</span>' AND password = '...'</span>
+          SQL Query: <span class="text-yellow">SELECT * FROM operators WHERE username = '<span id="sql-query-display"></span>' AND password = '...'</span>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
             <label>Username</label>
-            <input type="text" id="sqli-user-input" class="input" placeholder="e.g. ' OR '1'='1" value="' OR '1'='1">
+            <input type="text" id="sqli-user-input" class="input" placeholder="e.g. ' OR '1'='1" autocomplete="off">
           </div>
           <div>
             <label>Password</label>
-            <input type="password" id="sqli-pass-input" class="input" value="anything">
+            <input type="password" id="sqli-pass-input" class="input" value="anything" autocomplete="off">
           </div>
         </div>
 
@@ -632,7 +657,7 @@
         </div>
       </div>
 
-      <div id="operator-console-panel" class="card" style="background-color: #060b14; border-color: var(--neon-cyan);">
+      <div id="operator-console-panel" class="card hidden" style="background-color: #060b14; border-color: var(--neon-cyan);">
         <div class="card-header">
           <span class="text-cyan font-bold">OPERATOR CONSOLE // COOKIE INSPECTOR</span>
           <span class="badge badge-green">SESSION ACTIVE</span>
@@ -658,22 +683,13 @@
             </tr>
             <tr>
               <td><strong>role</strong></td>
-              <td><input type="text" id="cookie-role-input" class="input" value="admin" style="padding:4px 8px; font-size:12px;"></td>
+              <td><input type="text" id="cookie-role-input" class="input" value="user" style="padding:4px 8px; font-size:12px;" autocomplete="off"></td>
               <td><button type="button" class="btn btn-sm btn-success" id="btn-apply-cookie">Apply & Refresh</button></td>
             </tr>
           </tbody>
         </table>
 
-        <div id="cookie-result-area" style="margin-top: 14px; font-size: 13px;">
-          <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
-            <strong>ADMINISTRATOR PRIVILEGES GRANTED!</strong><br>
-            Flag Token: <code class="mono text-cyan">NIGHT{SQLI_COOKIE_BYPASS}</code><br>
-            <div class="flex-row" style="gap:8px; margin-top:8px;">
-              <button type="button" class="btn btn-sm btn-success" id="btn-copy-web-flag">Copy Flag</button>
-              <button type="button" class="btn btn-sm btn-primary" id="btn-submit-web-flag">⚡ Submit Flag Now &rarr;</button>
-            </div>
-          </div>
-        </div>
+        <div id="cookie-result-area" style="margin-top: 14px; font-size: 13px;"></div>
       </div>
     `;
 
@@ -886,31 +902,22 @@
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:12px;">
           <div>
             <label style="font-size:11px;">Rogue Process</label>
-            <input type="text" id="triage-proc" class="input" placeholder="e.g. svch0st.exe" value="svch0st.exe">
+            <input type="text" id="triage-proc" class="input" placeholder="e.g. svch0st.exe" value="">
           </div>
           <div>
             <label style="font-size:11px;">C2 Domain</label>
-            <input type="text" id="triage-c2" class="input" placeholder="e.g. c2-darknode.internal" value="c2-darknode.internal">
+            <input type="text" id="triage-c2" class="input" placeholder="e.g. c2-darknode.internal" value="">
           </div>
           <div>
             <label style="font-size:11px;">Persistence Reg Name</label>
-            <input type="text" id="triage-reg" class="input" placeholder="e.g. WinUpdateHelper" value="WinUpdateHelper">
+            <input type="text" id="triage-reg" class="input" placeholder="e.g. WinUpdateHelper" value="">
           </div>
         </div>
         <div class="flex-between">
           <button type="button" class="btn btn-sm" id="btn-autofill-triage">Fill Detected Artifacts</button>
           <button type="button" class="btn btn-primary btn-sm" id="btn-verify-triage">Verify Artifacts</button>
         </div>
-        <div id="triage-result-feedback" style="margin-top:10px; font-size:12px;">
-          <div style="background:rgba(0,255,136,0.1); border:1px solid var(--neon-green); padding:10px; border-radius:4px; color:var(--neon-green);">
-            <strong>ALL 3 MALICIOUS ARTIFACTS CONFIRMED!</strong><br>
-            Flag Token: <code class="mono text-cyan">NIGHT{MALWARE_ARTIFACT_HUNTED}</code><br>
-            <div class="flex-row" style="gap:8px; margin-top:8px;">
-              <button type="button" class="btn btn-sm btn-success" id="btn-copy-mal-flag">Copy Flag</button>
-              <button type="button" class="btn btn-sm btn-primary" id="btn-submit-mal-flag">⚡ Submit Flag Now &rarr;</button>
-            </div>
-          </div>
-        </div>
+        <div id="triage-result-feedback" style="margin-top:10px; font-size:12px;"></div>
       </div>
     `;
 
@@ -1005,12 +1012,12 @@
         <form id="form-vault-submit" style="max-width:440px; margin:0 auto; text-align:left;">
           <div class="form-group">
             <label for="input-insider-id">Insider Employee ID (Fragments: EMP + 44 + 71)</label>
-            <input type="text" id="input-insider-id" class="input" placeholder="e.g. EMP-4471" value="EMP-4471" required autocomplete="off">
+            <input type="text" id="input-insider-id" class="input" placeholder="e.g. EMP-4471" value="" required autocomplete="off">
           </div>
 
           <div class="form-group">
             <label for="input-hacker-alias">Hacker Alias (Level 4 Fragment)</label>
-            <input type="text" id="input-hacker-alias" class="input" placeholder="e.g. SHADOW-X" value="SHADOW-X" required autocomplete="off">
+            <input type="text" id="input-hacker-alias" class="input" placeholder="e.g. SHADOW-X" value="" required autocomplete="off">
           </div>
 
           <div class="flex-row" style="gap:8px; margin-top:12px;">

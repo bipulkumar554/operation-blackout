@@ -451,10 +451,11 @@ class StateManager {
       (inputInner.toUpperCase() === innerToken.toUpperCase());
 
     if (isCorrectFlag) {
-      // Correct Solve! Reset wrong attempts
+      // Correct Solve! Reset wrong attempts and rate limit cooldown
       team.wrongFlagAttempts = [];
       team.isLocked = false;
       team.lockUntil = 0;
+      team.lastFlagAttempt = 0;
 
       team.solvedLevels.push(levelNumber);
       if (level.evidenceFragment && !team.evidenceFragments.includes(level.evidenceFragment)) {
