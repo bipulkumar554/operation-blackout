@@ -75,12 +75,17 @@
     };
   }
 
-  // Screen Switcher Helper
+  // Screen Switcher Helper - avoids reflow, focus loss, and blinking on active screens
   function showScreen(screenEl) {
+    if (!screenEl) return;
+    if (screenEl.classList.contains('hidden')) {
+      screenEl.classList.remove('hidden');
+    }
     [screenLanding, screenEntryGate, screenJoin, screenLobby, screenGame, screenVictory].forEach(s => {
-      if (s) s.classList.add('hidden');
+      if (s && s !== screenEl && !s.classList.contains('hidden')) {
+        s.classList.add('hidden');
+      }
     });
-    if (screenEl) screenEl.classList.remove('hidden');
   }
 
   // --- Socket Connectivity Status ---
@@ -404,9 +409,14 @@
 
   // --- Active Challenge Rendering ---
   // --- Mission Progress & Navigation Bar ---
-  function renderMissionNavBar() {
+  let lastNavSignature = '';
+  function renderMissionNavBar(force = false) {
     const navBar = document.getElementById('mission-nav-bar');
     if (!navBar || !currentLevels.length) return;
+
+    const sig = `${activeLevelNumber}-${currentLevels.map(l => `${l.number}:${l.isAccessible}:${l.isSolved}`).join(',')}`;
+    if (!force && sig === lastNavSignature) return;
+    lastNavSignature = sig;
 
     navBar.innerHTML = '';
     currentLevels.forEach(l => {
@@ -479,7 +489,7 @@
       if (btnAutofillFrag) {
         if (prevFragment || level.levelKeyRequired) {
           btnAutofillFrag.style.display = 'inline-block';
-          btnAutofillFrag.textContent = `⚡ Decrypt using fragment: ${prevFragment || level.levelKeyRequired}`;
+          btnAutofillFrag.textContent = `⚡ Decrypt Door using Collected Evidence`;
           btnAutofillFrag.onclick = () => {
             const inputKey = document.getElementById('input-level-key');
             if (inputKey) {
@@ -586,9 +596,8 @@
         <div class="code-preview" id="recon-output-panel">
           Select an investigation button above to inspect target artifacts...
         </div>
-        <div style="padding: 10px 14px; background-color:#050912; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:12px; color:var(--text-muted);">Discovered Flag: <code class="mono text-cyan">NIGHT{RECON_MASTER}</code></span>
-          <button type="button" class="btn btn-sm btn-primary" id="btn-auto-submit-l1">⚡ Auto-Fill Flag &rarr;</button>
+        <div style="padding: 10px 14px; background-color:#050912; border-top:1px solid var(--border-color); font-size:12px; color:var(--text-muted);">
+          Inspect the investigation tabs above to discover the hidden flag, then submit it below.
         </div>
       </div>
     `;
@@ -612,11 +621,6 @@
       };
       container.querySelector('#btn-tab-exif').onclick = () => {
         panel.textContent = JSON.stringify(reconData.imageMetadata, null, 2);
-      };
-
-      container.querySelector('#btn-auto-submit-l1').onclick = () => {
-        document.getElementById('input-flag-submission').value = 'NIGHT{RECON_MASTER}';
-        document.getElementById('form-flag-submit')?.requestSubmit();
       };
 
       // Default to View Source
@@ -643,16 +647,16 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
             <label>Username</label>
-            <input type="text" id="sqli-user-input" class="input" placeholder="e.g. ' OR '1'='1" autocomplete="off">
+            <input type="text" id="sqli-user-input" class="input" placeholder="Enter username..." autocomplete="off">
           </div>
           <div>
             <label>Password</label>
-            <input type="password" id="sqli-pass-input" class="input" value="anything" autocomplete="off">
+            <input type="password" id="sqli-pass-input" class="input" placeholder="Enter password..." autocomplete="off">
           </div>
         </div>
 
         <div class="flex-between">
-          <button type="button" class="btn btn-sm" id="btn-quick-sqli">Paste Payload: ' OR '1'='1</button>
+          <span style="font-size:11px; color:var(--text-muted);">Simulated SQL Auth Query</span>
           <button type="button" class="btn btn-primary btn-sm" id="btn-test-sqli">Authenticate</button>
         </div>
       </div>
@@ -683,7 +687,7 @@
             </tr>
             <tr>
               <td><strong>role</strong></td>
-              <td><input type="text" id="cookie-role-input" class="input" value="user" style="padding:4px 8px; font-size:12px;" autocomplete="off"></td>
+              <td><input type="text" id="cookie-role-input" class="input" value="user" placeholder="Enter role..." style="padding:4px 8px; font-size:12px;" autocomplete="off"></td>
               <td><button type="button" class="btn btn-sm btn-success" id="btn-apply-cookie">Apply & Refresh</button></td>
             </tr>
           </tbody>
@@ -695,17 +699,39 @@
 
     setTimeout(() => {
       const userInput = container.querySelector('#sqli-user-input');
+      const passInput = container.querySelector('#sqli-pass-input');
       const queryDisplay = container.querySelector('#sql-query-display');
       const consolePanel = container.querySelector('#operator-console-panel');
+      const roleInput = container.querySelector('#cookie-role-input');
 
       userInput.oninput = () => {
         queryDisplay.textContent = userInput.value;
       };
 
-      container.querySelector('#btn-quick-sqli').onclick = () => {
-        userInput.value = "' OR '1'='1";
-        queryDisplay.textContent = userInput.value;
+      userInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          container.querySelector('#btn-test-sqli')?.click();
+        }
       };
+
+      if (passInput) {
+        passInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            container.querySelector('#btn-test-sqli')?.click();
+          }
+        };
+      }
+
+      if (roleInput) {
+        roleInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            container.querySelector('#btn-apply-cookie')?.click();
+          }
+        };
+      }
 
       container.querySelector('#btn-test-sqli').onclick = () => {
         const val = userInput.value.trim().toLowerCase();
@@ -776,7 +802,7 @@
           <button type="button" class="btn btn-sm" id="btn-copy-hex">Copy Hex</button>
         </div>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-          Intercepted transmission sequence: Hex &rarr; Base64 &rarr; Caesar (Shift +3). Decodes to: <strong class="text-cyan">CYBER_DEFENSE_GRID</strong>
+          Intercepted transmission sequence: Layered Ciphertext (Hex &rarr; Base64 &rarr; Caesar Shift). Use the Decoder Toolkit in the side panel to decipher Stage 1.
         </p>
         <div class="code-preview" id="crypto-hex-display" style="word-break: break-all; margin-bottom: 12px;">
           ${cryptoData.ciphertextHex || '526b4a46534656665230684a534646575346394b56557848'}
@@ -790,7 +816,7 @@
           <span class="badge badge-yellow">MORSE CODE BEACON</span>
         </div>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
-          An automated beacon is broadcasting an audio signature on the tactical channel. Decodes to: <strong class="text-yellow">SHADOW</strong>
+          An automated beacon is broadcasting an audio signature on the tactical channel. Listen to the signal or analyze the Morse pattern to extract the keyword.
         </p>
 
         <div class="flex-row" style="gap:10px; margin-bottom:12px;">
@@ -799,22 +825,18 @@
         </div>
 
         <div style="font-size:11px; color:var(--text-muted);">
-          Visual representation: <code class="mono text-cyan">${cryptoData.morseCode || '... .... .- -.. --- .--'}</code> (S-H-A-D-O-W)
+          Visual representation: <code class="mono text-cyan">${cryptoData.morseCode || '... .... .- -.. --- .--'}</code>
         </div>
       </div>
 
       <div class="card" style="background-color: #091325; border-color: var(--neon-cyan);">
         <div class="card-header">
           <span class="mono text-cyan">STAGE 3: Assembled Flag Token</span>
-          <span class="badge badge-green">READY</span>
+          <span class="badge badge-cyan">FINAL ASSEMBLY</span>
         </div>
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
-          Combine Stage 1 plaintext and Stage 2 Morse: <code class="mono text-cyan">NIGHT{CYBER_DEFENSE_GRID_SHADOW}</code>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+          Combine Stage 1 plaintext and Stage 2 Morse keyword: <code class="mono text-cyan">NIGHT{STAGE1_STAGE2}</code>, then enter and submit in the verification box below.
         </p>
-        <div class="flex-row" style="gap:8px;">
-          <button type="button" class="btn btn-success btn-sm" id="btn-copy-crypto-flag">Copy Flag</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btn-auto-submit-crypto">⚡ Submit Flag Now &rarr;</button>
-        </div>
       </div>
     `;
 
@@ -838,16 +860,6 @@
           indicator.classList.add('hidden');
           btnPlayMorse.disabled = false;
         });
-      };
-
-      container.querySelector('#btn-copy-crypto-flag').onclick = () => {
-        window.copyToClipboard('NIGHT{CYBER_DEFENSE_GRID_SHADOW}');
-        document.getElementById('input-flag-submission').value = 'NIGHT{CYBER_DEFENSE_GRID_SHADOW}';
-      };
-
-      container.querySelector('#btn-auto-submit-crypto').onclick = () => {
-        document.getElementById('input-flag-submission').value = 'NIGHT{CYBER_DEFENSE_GRID_SHADOW}';
-        document.getElementById('form-flag-submit')?.requestSubmit();
       };
     }, 0);
 
@@ -902,19 +914,19 @@
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:12px;">
           <div>
             <label style="font-size:11px;">Rogue Process</label>
-            <input type="text" id="triage-proc" class="input" placeholder="e.g. svch0st.exe" value="">
+            <input type="text" id="triage-proc" class="input" placeholder="Process name (e.g. process.exe)..." value="" autocomplete="off">
           </div>
           <div>
             <label style="font-size:11px;">C2 Domain</label>
-            <input type="text" id="triage-c2" class="input" placeholder="e.g. c2-darknode.internal" value="">
+            <input type="text" id="triage-c2" class="input" placeholder="Adversary domain or IP..." value="" autocomplete="off">
           </div>
           <div>
             <label style="font-size:11px;">Persistence Reg Name</label>
-            <input type="text" id="triage-reg" class="input" placeholder="e.g. WinUpdateHelper" value="">
+            <input type="text" id="triage-reg" class="input" placeholder="Autorun registry key name..." value="" autocomplete="off">
           </div>
         </div>
         <div class="flex-between">
-          <button type="button" class="btn btn-sm" id="btn-autofill-triage">Fill Detected Artifacts</button>
+          <span style="font-size:11px; color:var(--text-muted);">Inspect artifacts across the 3 tabs above to identify threats</span>
           <button type="button" class="btn btn-primary btn-sm" id="btn-verify-triage">Verify Artifacts</button>
         </div>
         <div id="triage-result-feedback" style="margin-top:10px; font-size:12px;"></div>
@@ -958,11 +970,14 @@
 
       bindMalwareActions();
 
-      container.querySelector('#btn-autofill-triage').onclick = () => {
-        container.querySelector('#triage-proc').value = 'svch0st.exe';
-        container.querySelector('#triage-c2').value = 'c2-darknode.internal';
-        container.querySelector('#triage-reg').value = 'WinUpdateHelper';
-      };
+      ['#triage-proc', '#triage-c2', '#triage-reg'].forEach(sel => {
+        container.querySelector(sel)?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            container.querySelector('#btn-verify-triage')?.click();
+          }
+        });
+      });
 
       container.querySelector('#btn-verify-triage').onclick = () => {
         const proc = container.querySelector('#triage-proc').value.trim().toLowerCase();
@@ -1009,20 +1024,19 @@
           Synthesize the evidence fragments gathered across all previous operations. Unmask the insider and enter the adversary alias to abort the blackout sequence.
         </p>
 
-        <form id="form-vault-submit" style="max-width:440px; margin:0 auto; text-align:left;">
+        <form id="form-vault-submit" action="javascript:void(0);" onsubmit="return false;" style="max-width:440px; margin:0 auto; text-align:left;">
           <div class="form-group">
-            <label for="input-insider-id">Insider Employee ID (Fragments: EMP + 44 + 71)</label>
-            <input type="text" id="input-insider-id" class="input" placeholder="e.g. EMP-4471" value="" required autocomplete="off">
+            <label for="input-insider-id">Insider Employee ID (Assemble previous mission fragments)</label>
+            <input type="text" id="input-insider-id" class="input" placeholder="Enter combined Employee ID..." value="" required autocomplete="off">
           </div>
 
           <div class="form-group">
-            <label for="input-hacker-alias">Hacker Alias (Level 4 Fragment)</label>
-            <input type="text" id="input-hacker-alias" class="input" placeholder="e.g. SHADOW-X" value="" required autocomplete="off">
+            <label for="input-hacker-alias">Adversary Hacker Alias</label>
+            <input type="text" id="input-hacker-alias" class="input" placeholder="Enter adversary codename..." value="" required autocomplete="off">
           </div>
 
-          <div class="flex-row" style="gap:8px; margin-top:12px;">
-            <button type="button" class="btn btn-sm" id="btn-vault-autofill" style="flex:1;">⚡ Auto-Fill Fragments</button>
-            <button type="submit" class="btn btn-primary" id="btn-vault-override" style="flex:2;">
+          <div style="margin-top:14px;">
+            <button type="submit" class="btn btn-primary" id="btn-vault-override" style="width:100%;">
               ⚡ EXECUTE OVERRIDE
             </button>
           </div>
@@ -1035,10 +1049,14 @@
       const insiderIn = container.querySelector('#input-insider-id');
       const hackerIn = container.querySelector('#input-hacker-alias');
 
-      container.querySelector('#btn-vault-autofill').onclick = () => {
-        insiderIn.value = 'EMP-4471';
-        hackerIn.value = 'SHADOW-X';
-      };
+      [insiderIn, hackerIn].forEach(input => {
+        input?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            form?.requestSubmit ? form.requestSubmit() : form?.onsubmit(e);
+          }
+        });
+      });
 
       form.onsubmit = (e) => {
         e.preventDefault();
@@ -1071,11 +1089,22 @@
   const btnSubmitLevelKey = document.getElementById('btn-submit-level-key');
   const levelKeyFeedback = document.getElementById('level-key-feedback');
 
+  if (inputLevelKey) {
+    inputLevelKey.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        formLevelKey?.requestSubmit ? formLevelKey.requestSubmit() : formLevelKey?.onsubmit(e);
+      }
+    };
+  }
+
   if (formLevelKey) {
     formLevelKey.onsubmit = (e) => {
-      e.preventDefault();
-      const keyVal = inputLevelKey.value.trim();
-      if (!keyVal) return;
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      const keyVal = inputLevelKey ? inputLevelKey.value.trim() : '';
+      if (!keyVal) return false;
 
       if (btnSubmitLevelKey) {
         btnSubmitLevelKey.disabled = true;
@@ -1109,6 +1138,7 @@
           window.showToast(res?.error || 'Invalid Level Key.', 'danger');
         }
       });
+      return false;
     };
   }
 
@@ -1118,11 +1148,22 @@
   const flagFeedbackStatus = document.getElementById('flag-feedback-status');
   const btnSubmitFlag = document.getElementById('btn-submit-flag');
 
+  if (inputFlagSubmission) {
+    inputFlagSubmission.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        formFlagSubmit?.requestSubmit ? formFlagSubmit.requestSubmit() : formFlagSubmit?.onsubmit(e);
+      }
+    };
+  }
+
   if (formFlagSubmit) {
     formFlagSubmit.onsubmit = (e) => {
-      e.preventDefault();
-      const rawFlag = inputFlagSubmission.value.trim();
-      if (!rawFlag) return;
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      const rawFlag = inputFlagSubmission ? inputFlagSubmission.value.trim() : '';
+      if (!rawFlag) return false;
 
       if (btnSubmitFlag) {
         btnSubmitFlag.disabled = true;
@@ -1215,7 +1256,14 @@
     };
   });
 
-  function renderSidePanel() {
+  let lastSidePanelSignature = '';
+  function renderSidePanel(force = false) {
+    const hintsUsed = (currentTeamData?.hintsUsed?.[activeLevelNumber] || []).join(',');
+    const quizCount = Object.keys(currentTeamData?.quizAnswers?.[activeLevelNumber] || {}).length;
+    const sig = `${activeLevelNumber}-${hintsUsed}-${quizCount}`;
+    if (!force && sig === lastSidePanelSignature) return;
+    lastSidePanelSignature = sig;
+
     renderHintsList();
     renderQuizList();
     renderBriefingTab();
