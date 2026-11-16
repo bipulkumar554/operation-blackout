@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>OPERATION BLACKOUT - Cyber CTF</title>
-  <link rel="stylesheet" href="/css/common.css">
-  <link rel="stylesheet" href="/css/play.css">
+  <link rel="stylesheet" href="/css/common.css?v=3.6.0">
+  <link rel="stylesheet" href="/css/play.css?v=3.6.0">
 </head>
 <body class="atmosphere-low">
 
@@ -128,7 +131,7 @@
           <form id="form-join" action="javascript:void(0);" onsubmit="return false;">
             <div class="form-group">
               <label for="input-agent-name">Your Codename / Agent Handle</label>
-              <input type="text" id="input-agent-name" class="input" placeholder="e.g. CipherNull" maxlength="24" required>
+              <input type="text" id="input-agent-name" class="input" placeholder="Enter codename..." maxlength="24" required>
             </div>
 
             <div class="form-group">
@@ -145,7 +148,7 @@
 
             <div class="form-group" id="group-team-name" style="display:none;">
               <label for="input-team-name">Team Name</label>
-              <input type="text" id="input-team-name" class="input" placeholder="e.g. NetSpectres" maxlength="32">
+              <input type="text" id="input-team-name" class="input" placeholder="Enter team name..." maxlength="32">
               <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
                 Teammates entering this exact name will share your terminal score and progress.
               </div>
@@ -220,7 +223,7 @@
                 Enter the evidence fragment collected from your previous mission solve to decrypt the door to this level.
               </p>
               <form id="form-level-key" action="javascript:void(0);" onsubmit="return false;" class="flex-row" style="gap:10px; flex-wrap:wrap;">
-                <input type="text" id="input-level-key" class="input" style="flex:1; min-width:200px;" placeholder="Enter evidence fragment from previous level..." required autocomplete="off">
+                <input type="text" id="input-level-key" class="input" style="flex:1; min-width:200px;" placeholder="Type answer here..." required autocomplete="off">
                 <button type="submit" class="btn btn-warning" id="btn-submit-level-key">Decrypt Door</button>
                 <button type="button" class="btn btn-primary" id="btn-autofill-fragment-key" style="display:none;">⚡ Decrypt Door</button>
               </form>
@@ -255,12 +258,12 @@
                   <div class="form-group" style="margin-bottom: 8px;">
                     <label for="input-flag-submission">Submit Verification Flag</label>
                     <div class="input-with-copy">
-                      <input type="text" id="input-flag-submission" class="input" placeholder="Enter mission flag (e.g. NIGHT{...})" required autocomplete="off">
+                      <input type="text" id="input-flag-submission" class="input" placeholder="Type answer here..." required autocomplete="off">
                       <button type="submit" class="btn btn-primary" id="btn-submit-flag">Verify Flag</button>
                     </div>
                   </div>
                   <div class="flex-between" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-                    <span>Format: <code class="text-cyan">NIGHT{...}</code> (Your team salt is automatically appended)</span>
+                    <span>Format: Any casing accepted (Salt is auto-synced)</span>
                     <span id="flag-feedback-status"></span>
                   </div>
                 </form>
@@ -415,8 +418,8 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/toast-modal.js"></script>
-  <script src="/js/audio.js"></script>
-  <script src="/js/play.js"></script>
+  <script src="/js/toast-modal.js?v=3.6.0"></script>
+  <script src="/js/audio.js?v=3.6.0"></script>
+  <script src="/js/play.js?v=3.6.0"></script>
 </body>
 </html>

@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>CONTROL ROOM // OPERATION BLACKOUT</title>
-  <link rel="stylesheet" href="/css/common.css">
-  <link rel="stylesheet" href="/css/host.css">
+  <link rel="stylesheet" href="/css/common.css?v=3.6.0">
+  <link rel="stylesheet" href="/css/host.css?v=3.6.0">
 </head>
 <body class="atmosphere-med">
 
@@ -20,7 +23,7 @@
 
       <form id="form-host-login">
         <div class="form-group">
-          <input type="password" id="input-host-pin" class="input" placeholder="Enter Host PIN (e.g. 1337)" required autofocus style="text-align:center; font-size:18px; letter-spacing:4px;">
+          <input type="password" id="input-host-pin" class="input" placeholder="Enter Host PIN..." required autofocus style="text-align:center; font-size:18px; letter-spacing:4px;">
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;">ACCESS CONTROL ROOM</button>
         <div id="host-login-feedback" style="margin-top:10px; font-size:12px;"></div>
@@ -199,8 +202,8 @@
               </select>
             </div>
             <div class="flex-row" style="margin-bottom:10px;">
-              <input type="number" id="input-points-delta" class="input" placeholder="Points (e.g. 50 or -20)" required>
-              <input type="text" id="input-points-reason" class="input" placeholder="Reason" value="Host Bonus">
+              <input type="number" id="input-points-delta" class="input" placeholder="Points delta..." required>
+              <input type="text" id="input-points-reason" class="input" placeholder="Reason..." value="Host Bonus">
             </div>
             <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">Apply Points</button>
           </form>
@@ -343,7 +346,7 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/toast-modal.js"></script>
-  <script src="/js/host.js"></script>
+  <script src="/js/toast-modal.js?v=3.6.0"></script>
+  <script src="/js/host.js?v=3.6.0"></script>
 </body>
 </html>

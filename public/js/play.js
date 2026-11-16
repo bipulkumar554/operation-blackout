@@ -17,7 +17,7 @@
   let currentTeamData = null;
   let currentLevels = [];
   let publicStateCache = null;
-  let activeLevelNumber = 1;
+  let activeLevelNumber = parseInt(sessionStorage.getItem('ob_active_level') || '0', 10) || 1;
   let soundMuted = false;
   let blurTimer = null;
   let lastCountdownTickSecond = -1;
@@ -448,6 +448,7 @@
       if (l.isAccessible || l.isSolved) {
         btn.onclick = () => {
           activeLevelNumber = l.number;
+          sessionStorage.setItem('ob_active_level', String(l.number));
           renderActiveChallenge();
           renderMissionNavBar();
         };
@@ -470,7 +471,8 @@
     if (!currentLevels.length) return;
 
     if (!activeLevelNumber) {
-      activeLevelNumber = currentTeamData?.currentLevel || 1;
+      const savedActive = parseInt(sessionStorage.getItem('ob_active_level') || '0', 10);
+      activeLevelNumber = (savedActive >= 1 && savedActive <= 5) ? savedActive : (currentTeamData?.currentLevel || 1);
     }
     const level = currentLevels.find(l => l.number === activeLevelNumber) || currentLevels[0];
 
@@ -478,44 +480,15 @@
     const cardActiveChallenge = document.getElementById('card-active-challenge');
     const btnAutofillFrag = document.getElementById('btn-autofill-fragment-key');
 
-    if (!level.isAccessible) {
-      // Need unlock via key or previous solve
-      cardLevelKeyGate.classList.remove('hidden');
-      document.getElementById('level-key-prompt-title').textContent = `Waiting for Level ${level.number} Unlock`;
-      cardActiveChallenge.classList.add('hidden');
-
-      // Check if team has the required key from previous fragment
-      const prevFragment = (currentTeamData?.evidenceFragments || [])[level.number - 2];
-      if (btnAutofillFrag) {
-        if (prevFragment || level.levelKeyRequired) {
-          btnAutofillFrag.style.display = 'inline-block';
-          btnAutofillFrag.textContent = `⚡ Decrypt Door using Collected Evidence`;
-          btnAutofillFrag.onclick = () => {
-            const inputKey = document.getElementById('input-level-key');
-            if (inputKey) {
-              inputKey.value = prevFragment || level.levelKeyRequired;
-              document.getElementById('form-level-key')?.requestSubmit();
-            }
-          };
-        } else {
-          btnAutofillFrag.style.display = 'none';
-        }
-      }
-      currentMountedLevel = level.number;
-      currentMountedSolved = level.isSolved;
-      currentMountedAccessible = false;
-      return;
-    }
-
-    cardLevelKeyGate.classList.add('hidden');
-    cardActiveChallenge.classList.remove('hidden');
+    // Always ensure the challenge card is active and the gate is hidden
+    if (cardLevelKeyGate) cardLevelKeyGate.classList.add('hidden');
+    if (cardActiveChallenge) cardActiveChallenge.classList.remove('hidden');
 
     // ONLY re-mount DOM if level changed, or solved state changed, or forced!
     // This PREVENTS user typing from ever getting deleted by periodic background ticks!
     const needsMount = force ||
       (currentMountedLevel !== level.number) ||
-      (currentMountedSolved !== level.isSolved) ||
-      (currentMountedAccessible !== true);
+      (currentMountedSolved !== level.isSolved);
 
     if (!needsMount) {
       return;
@@ -647,11 +620,11 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
             <label>Username</label>
-            <input type="text" id="sqli-user-input" class="input" placeholder="Enter username..." autocomplete="off">
+            <input type="text" id="sqli-user-input" class="input" placeholder="Type answer here..." autocomplete="off">
           </div>
           <div>
             <label>Password</label>
-            <input type="password" id="sqli-pass-input" class="input" placeholder="Enter password..." autocomplete="off">
+            <input type="password" id="sqli-pass-input" class="input" placeholder="Type answer here..." autocomplete="off">
           </div>
         </div>
 
@@ -687,7 +660,7 @@
             </tr>
             <tr>
               <td><strong>role</strong></td>
-              <td><input type="text" id="cookie-role-input" class="input" value="user" placeholder="Enter role..." style="padding:4px 8px; font-size:12px;" autocomplete="off"></td>
+              <td><input type="text" id="cookie-role-input" class="input" value="user" placeholder="Type answer here..." style="padding:4px 8px; font-size:12px;" autocomplete="off"></td>
               <td><button type="button" class="btn btn-sm btn-success" id="btn-apply-cookie">Apply & Refresh</button></td>
             </tr>
           </tbody>
@@ -914,15 +887,15 @@
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:12px;">
           <div>
             <label style="font-size:11px;">Rogue Process</label>
-            <input type="text" id="triage-proc" class="input" placeholder="Process name (e.g. process.exe)..." value="" autocomplete="off">
+            <input type="text" id="triage-proc" class="input" placeholder="Type answer here..." value="" autocomplete="off">
           </div>
           <div>
             <label style="font-size:11px;">C2 Domain</label>
-            <input type="text" id="triage-c2" class="input" placeholder="Adversary domain or IP..." value="" autocomplete="off">
+            <input type="text" id="triage-c2" class="input" placeholder="Type answer here..." value="" autocomplete="off">
           </div>
           <div>
             <label style="font-size:11px;">Persistence Reg Name</label>
-            <input type="text" id="triage-reg" class="input" placeholder="Autorun registry key name..." value="" autocomplete="off">
+            <input type="text" id="triage-reg" class="input" placeholder="Type answer here..." value="" autocomplete="off">
           </div>
         </div>
         <div class="flex-between">
@@ -1027,12 +1000,12 @@
         <form id="form-vault-submit" action="javascript:void(0);" onsubmit="return false;" style="max-width:440px; margin:0 auto; text-align:left;">
           <div class="form-group">
             <label for="input-insider-id">Insider Employee ID (Assemble previous mission fragments)</label>
-            <input type="text" id="input-insider-id" class="input" placeholder="Enter combined Employee ID..." value="" required autocomplete="off">
+            <input type="text" id="input-insider-id" class="input" placeholder="Type answer here..." value="" required autocomplete="off">
           </div>
 
           <div class="form-group">
             <label for="input-hacker-alias">Adversary Hacker Alias</label>
-            <input type="text" id="input-hacker-alias" class="input" placeholder="Enter adversary codename..." value="" required autocomplete="off">
+            <input type="text" id="input-hacker-alias" class="input" placeholder="Type answer here..." value="" required autocomplete="off">
           </div>
 
           <div style="margin-top:14px;">
@@ -1228,6 +1201,7 @@
     btnProceedNextLevel.onclick = () => {
       if (activeLevelNumber < 5) {
         activeLevelNumber++;
+        sessionStorage.setItem('ob_active_level', String(activeLevelNumber));
         renderActiveChallenge();
         renderMissionNavBar();
       } else {

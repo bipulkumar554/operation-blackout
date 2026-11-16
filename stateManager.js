@@ -306,20 +306,7 @@ class StateManager {
     const team = this.state.teams[teamId];
     if (!team) return false;
     if (team.disqualified) return false;
-
-    if (levelNumber <= 1) return true;
-
-    // Must have solved previous level
-    const solvedPrevious = team.solvedLevels.includes(levelNumber - 1);
-    if (!solvedPrevious) {
-      return false;
-    }
-
-    // Accessible if released globally OR specifically for this team OR previous solved
-    const globallyReleased = this.state.releasedLevels.includes(levelNumber);
-    const teamReleased = (this.state.teamReleasedLevels[teamId] || []).includes(levelNumber);
-
-    return (globallyReleased || teamReleased || solvedPrevious);
+    return true;
   }
 
   verifyLevelKey(teamId, levelNumber, inputKey) {
@@ -437,7 +424,7 @@ class StateManager {
       if (cleanInput.toUpperCase() === 'CYBER_DEFENSE_GRID' || cleanInput.toUpperCase() === 'NIGHT{CYBER_DEFENSE_GRID}') {
         return {
           success: false,
-          error: 'Almost there! Combine Stage 1 with the Morse code keyword from Stage 2: NIGHT{CYBER_DEFENSE_GRID_SHADOW}'
+          error: 'Almost there! Combine Stage 1 plaintext with the Morse code keyword from Stage 2.'
         };
       }
     }
